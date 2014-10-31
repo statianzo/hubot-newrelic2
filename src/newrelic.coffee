@@ -48,8 +48,7 @@ plugin = (robot) ->
   robot.respond /newrelic apps/i, (msg) ->
     apps apiKey, msg
 
-plugin.servers = (servers, opts) ->
-  opts ||= {}
+plugin.servers = (servers, opts = {}) ->
   up = opts.up || "UP"
   down = opts.down || "DN"
   lines = servers.map (s) ->
@@ -62,13 +61,13 @@ plugin.servers = (servers, opts) ->
       line.push down
     line.push s.name
 
-    if summary.cpu
+    if isFinite(summary.cpu)
       line.push "CPU:#{summary.cpu}%"
 
-    if summary.memory
+    if isFinite(summary.memory)
       line.push "Mem:#{summary.memory}%"
 
-    if summary.fullest_disk
+    if isFinite(summary.fullest_disk)
       line.push "Disk:#{summary.fullest_disk}%"
 
     line.join "  "
