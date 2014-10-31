@@ -20,7 +20,7 @@ plugin = (robot) ->
   apiBaseUrl = "https://api.newrelic.com/v2/"
   config = {}
 
-  switch robot.adapter
+  switch robot.adapterName
     when "hipchat"
       config.up = '(continue)'
       config.down = '(failed)'
