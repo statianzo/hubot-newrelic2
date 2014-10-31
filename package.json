@@ -20,7 +20,7 @@
   },
   "main": "index.coffee",
   "scripts": {
-    "test": "./node_modules/.bin/nodeunit"
+    "test": "./node_modules/.bin/nodeunit --reporter skip_passed"
   },
   "devDependencies": {
     "nodeunit": "^0.9.0"
