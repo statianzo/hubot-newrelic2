@@ -1,5 +1,5 @@
 # Description:
-#   Display current server stats from New Relic
+#   Display stats from New Relic
 #
 # Dependencies:
 #
@@ -7,8 +7,8 @@
 #   HUBOT_NEWRELIC_API_KEY
 #
 # Commands:
-#   hubot newrelic servers - Returns summary server stats from New Relic
-#   hubot newrelic apps - Returns summary application stats from New Relic
+#   hubot newrelic servers - Returns server stats from New Relic
+#   hubot newrelic apps - Returns application stats from New Relic
 #
 # Author:
 #   statianzo
@@ -18,20 +18,32 @@
 plugin = (robot) ->
   apiKey = process.env.HUBOT_NEWRELIC_API_KEY
   apiBaseUrl = "https://api.newrelic.com/v2/"
+  config = {}
+
+  switch robot.adapter
+    when "hipchat"
+      config.up = '(continue)'
+      config.down = '(failed)'
 
   request = (path, cb) ->
     robot.http(apiBaseUrl + path)
       .header('X-Api-Key', apiKey)
       .get() (err, res, body) ->
         if err
-          msg.send "New Relic says: #{err}"
           cb(err)
-          return
-
-        cb null, JSON.parse(body)
+        else
+          json = JSON.parse(body)
+          if json.error
+            cb(new Error(body))
+          else
+            cb(null, json)
 
   robot.respond /newrelic servers/i, (msg) ->
-    servers apiKey, msg
+    request 'servers.json', (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        msg.send plugin.servers json.servers, config
 
   robot.respond /newrelic apps/i, (msg) ->
     apps apiKey, msg
