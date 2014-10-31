@@ -36,15 +36,18 @@ plugin = (robot) ->
   robot.respond /newrelic apps/i, (msg) ->
     apps apiKey, msg
 
-plugin.servers = (servers) ->
+plugin.servers = (servers, opts) ->
+  opts ||= {}
+  up = opts.up || "UP"
+  down = opts.down || "DN"
   lines = servers.map (s) ->
     line = []
     summary = s.summary || {}
 
     if s.reporting
-      line.push "(continue)"
+      line.push up
     else
-      line.push "(failed)"
+      line.push down
     line.push s.name
 
     if summary.cpu
