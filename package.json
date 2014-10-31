@@ -4,28 +4,25 @@
   "version": "0.1.0",
   "author": "Jason Staten <jstaten07@gmail.com>",
   "license": "MIT",
-
   "keywords": [
     "hubot",
     "hubot-scripts"
   ],
-
   "repository": {
     "type": "git",
     "url": "https://github.com/statianzo/hubot-newrelic2.git"
   },
-
   "bugs": {
     "url": "https://github.com/statianzo/hubot-newrelic2/issues"
   },
-
   "dependencies": {
-    "coffee-script": "^1.6"
+    "coffee-script": "^1.8.0"
   },
-
   "main": "index.coffee",
-
   "scripts": {
-    "test": "script/test"
+    "test": "./node_modules/.bin/nodeunit"
+  },
+  "devDependencies": {
+    "nodeunit": "^0.9.0"
   }
 }
