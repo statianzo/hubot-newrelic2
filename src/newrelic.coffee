@@ -46,7 +46,11 @@ plugin = (robot) ->
         msg.send plugin.servers json.servers, config
 
   robot.respond /newrelic apps/i, (msg) ->
-    apps apiKey, msg
+    request 'applications.json', (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        msg.send plugin.apps json.applications, config
 
 plugin.servers = (servers, opts = {}) ->
   up = opts.up || "UP"
@@ -74,21 +78,32 @@ plugin.servers = (servers, opts = {}) ->
 
   lines.join("\n")
 
-plugin.apps = (msg, apps) ->
-  lines = result.applications.map (a) ->
-    line = []
+plugin.apps = (apps, opts = {}) ->
+  up = opts.up || "UP"
+  down = opts.down || "DN"
 
-    if a.health_status == "green"
-      line.push "(continue)"
-    else if a.health_status == "grey"
-      line.push "(unknown)"
+  lines = apps.map (a) ->
+    line = []
+    summary = a.application_summary || {}
+
+    if a.reporting
+      line.push up
     else
-      line.push "(failed)"
+      line.push down
 
     line.push a.name
 
+    if isFinite(summary.response_time)
+      line.push "Res:#{summary.response_time}ms"
+
+    if isFinite(summary.throughput)
+      line.push "RPM:#{summary.throughput}"
+
+    if isFinite(summary.error_rate)
+      line.push "Err:#{summary.error_rate}%"
+
     line.join "  "
 
-  msg.send lines.join("\n")
+  lines.join("\n")
 
 module.exports = plugin
