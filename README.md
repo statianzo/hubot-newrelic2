@@ -2,6 +2,8 @@
 
 New Relic stats from hubot
 
+![newrelic servers](https://raw.githubusercontent.com/statianzo/hubot-newrelic2/master/doc/newrelicservers.png)
+
 ## Installation
 
 ```
