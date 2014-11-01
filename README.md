@@ -20,7 +20,7 @@ Set `HUBOT_NEWRELIC_API_KEY` to your New Relic API key
 #### List applications
 
 ```
-hubot newrelic servers
+hubot newrelic apps
 ```
 
 #### List servers
