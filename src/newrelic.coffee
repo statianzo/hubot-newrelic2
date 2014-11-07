@@ -5,6 +5,7 @@
 #
 # Configuration:
 #   HUBOT_NEWRELIC_API_KEY
+#   HUBOT_NEWRELIC_API_HOST="api.newrelic.com"
 #
 # Commands:
 #   hubot newrelic servers - Returns server stats from New Relic
@@ -17,7 +18,8 @@
 
 plugin = (robot) ->
   apiKey = process.env.HUBOT_NEWRELIC_API_KEY
-  apiBaseUrl = "https://api.newrelic.com/v2/"
+  apiHost = process.env.HUBOT_NEWRELIC_API_HOST
+  apiBaseUrl = "https://#{apiHost}/v2/"
   config = {}
 
   switch robot.adapterName
