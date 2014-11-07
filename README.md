@@ -13,6 +13,7 @@ npm install --save hubot-newrelic2
 Add `"hubot-newrelic2"` into your hubot project's `external-scripts.json`
 
 Set `HUBOT_NEWRELIC_API_KEY` to your New Relic API key
+Set `HUBOT_NEWRELIC_API_HOST` to `api.newrelic.com` (usually)
 
 ## Usage
 
