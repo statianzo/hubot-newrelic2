@@ -1,8 +1,12 @@
 {
   "name": "hubot-newrelic2",
   "description": "NewRelic plugin for hubot",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "author": "Jason Staten <jstaten07@gmail.com>",
+  "contributors": [{
+      "name": "Sean P. Kane",
+      "email": "spkane00@gmail.com"
+  }],
   "license": "MIT",
   "keywords": [
     "hubot",

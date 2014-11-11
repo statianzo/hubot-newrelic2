@@ -9,19 +9,22 @@
 #
 # Commands:
 #   hubot newrelic help - Returns a list of commands for this plugin
-#   hubot newrelic apps - Returns stats for all applications from New Relic
-#   hubot newrelic apps name <filter_string> - Returns a filtered list of apps
+#   hubot newrelic apps - Returns statistics for all applications from New Relic
+#   hubot newrelic apps name <filter_string> - Returns a filtered list of applications
 #   hubot newrelic apps instances <app_id> - Returns a list of one application's instances
 #   hubot newrelic apps hosts <app_id> - Returns a list of one application's hosts
 #   hubot newrelic ktrans - Lists stats for all key transactions from New Relic
-#   hubot newrelic ktrans id <ktrans_id> - Returns a single key transactions
-#   hubot newrelic servers - Returns stats for all servers from New Relic
-#   hubot newrelic server name <filter_string> - Returns a filtered list on servers
+#   hubot newrelic ktrans id <ktrans_id> - Returns a single key transaction
+#   hubot newrelic servers - Returns statistics for all servers from New Relic
+#   hubot newrelic server name <filter_string> - Returns a filtered list of servers
 #   hubot newrelic users - Returns a list of all account users from New Relic
 #   hubot newrelic user email <filter_string> - Returns a filtered list of account users
 #
-# Author:
+# Authors:
 #   statianzo
+#
+# Contributors:
+#   spkane
 #
 
 plugin = (robot) ->

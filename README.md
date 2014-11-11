@@ -10,10 +10,10 @@ New Relic stats from hubot
 npm install --save hubot-newrelic2
 ```
 
-Add `"hubot-newrelic2"` into your hubot project's `external-scripts.json`
-
-Set `HUBOT_NEWRELIC_API_KEY` to your New Relic API key
-Set `HUBOT_NEWRELIC_API_HOST` to `api.newrelic.com` (usually)
+* Add `"hubot-newrelic2"` into your hubot project's `external-scripts.json`
+* Add `"hubot-newrelic2": "^0.2.0"` (or other version) into your `package.json`
+* Set `HUBOT_NEWRELIC_API_KEY` to your New Relic API key
+* Set `HUBOT_NEWRELIC_API_HOST` to `api.newrelic.com` (usually)
 
 ## Usage
 
@@ -48,14 +48,14 @@ hubot newrelic apps hosts <app_id>
 
 #### Key Transaction Related Commands
 
-* List all key transactions
+* List of all key transactions
 ```
 hubot newrelic ktrans
 ```
 
-* Filtered list of key transactions
+* Returns a single key transaction
 ```
-hubot newrelic ktrans name <filter_string>
+hubot newrelic ktrans id <ktrans_id>
 ```
 
 #### Server Related Commands
@@ -72,12 +72,12 @@ hubot newrelic server name <filter_string>
 
 #### User Related Commands
 
-* List all users
+* List all account users
 ```
 hubot newrelic users
 ```
 
-* Filtered list of users
+* Filtered list of account users
 ```
 hubot newrelic user email <filter_string>
 ```
