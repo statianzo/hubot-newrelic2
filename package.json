@@ -9,7 +9,7 @@
       "email": "spkane00@gmail.com"
     }
   ],
-  "license": "MIT",
+  "license": "BSD",
   "keywords": [
     "hubot",
     "hubot-scripts"
