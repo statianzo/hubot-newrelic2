@@ -13,10 +13,16 @@
 #   hubot newrelic apps name <filter_string> - Returns a filtered list of applications
 #   hubot newrelic apps instances <app_id> - Returns a list of one application's instances
 #   hubot newrelic apps hosts <app_id> - Returns a list of one application's hosts
+#   hubot newrelic apps metrics <app_id> - Returns a list of one application's metric names
+#   hubot newrelic apps metrics <app_id> name <filter_string> - Returns a filtered list of metric names and all valid types
+#   hubot newrelic apps metrics <app_id> chart <metric_name> <metric_type> - Returns a chart for the metric/type based on the last 30 minutes of data
 #   hubot newrelic ktrans - Lists stats for all key transactions from New Relic
 #   hubot newrelic ktrans id <ktrans_id> - Returns a single key transaction
 #   hubot newrelic servers - Returns statistics for all servers from New Relic
-#   hubot newrelic server name <filter_string> - Returns a filtered list of servers
+#   hubot newrelic servers name <filter_string> - Returns a filtered list of servers
+#   hubot newrelic servers metrics <server_id> - Returns a list of one server's metric names
+#   hubot newrelic servers metrics <app_id> name <filter_string> - Returns a filtered list of metric names and all valid types
+#   hubot newrelic servers metrics <app_id> chart <metric_name> <metric_type> - Returns a chart for the metric/type based on the last 30 minutes of data
 #   hubot newrelic users - Returns a list of all account users from New Relic
 #   hubot newrelic user email <filter_string> - Returns a filtered list of account users
 #
@@ -27,9 +33,20 @@
 #   spkane
 #
 
+# TODO - deal with pagination. at the moment we are geting a single page, most likely.
+
 plugin = (robot) ->
+  fs = require 'fs'
+  s3 = require 's3'
+  Canvas = require 'canvas'
+  Chart = require 'nchart'
+
   apiKey = process.env.HUBOT_NEWRELIC_API_KEY
   apiHost = process.env.HUBOT_NEWRELIC_API_HOST
+  AwsKey = process.env.HUBOT_AWS_KEY
+  AwsSecret = process.env.HUBOT_AWS_SECRET
+  S3Bucket = process.env.HUBOT_AWS_S3_BUCKET
+  S3_BASE_URL = "https://#{S3Bucket}.s3.amazonaws.com/"
   apiBaseUrl = "https://#{apiHost}/v2/"
   config = {}
 
@@ -60,10 +77,16 @@ Note: In these commands you can shorten newrelic to nr.\n
 #{robot.name} newrelic apps name <filter_string>\n
 #{robot.name} newrelic apps instances <app_id>\n
 #{robot.name} newrelic apps hosts <app_id>\n
+#{robot.name} newrelic apps metrics <app_id>\n
+#{robot.name} newrelic apps metrics <app_id> name <filter_string>\n
+#{robot.name} newrelic apps metrics <app_id> chart <metric_name> <metric_type>\n
 #{robot.name} newrelic ktrans\n
 #{robot.name} newrelic ktrans id <ktrans_id>\n
 #{robot.name} newrelic servers\n
-#{robot.name} newrelic server name <filter_string>\n
+#{robot.name} newrelic servers name <filter_string>\n
+#{robot.name} newrelic servers metrics <server_id>\n
+#{robot.name} newrelic apps metrics <app_id> name <filter_string>\n
+#{robot.name} newrelic apps metrics <app_id> chart <metric_name> <metric_type>\n
 #{robot.name} newrelic users\n
 #{robot.name} newrelic user email <filter_string>"
 
@@ -117,6 +140,93 @@ Note: In these commands you can shorten newrelic to nr.\n
       else
         msg.send plugin.instances json.application_instances, config
 
+  robot.respond /(newrelic|nr) apps metrics ([0-9]+)$/i, (msg) ->
+    request "applications/#{msg.match[2]}/metrics.json", '', (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        msg.send plugin.metrics json.metrics, config
+
+  robot.respond /(newrelic|nr) apps metrics ([0-9]+) name ([\s\S]+)$/i, (msg) ->
+    data = encodeURIComponent('name') + '=' +  encodeURIComponent(msg.match[3])
+    request "applications/#{msg.match[2]}/metrics.json", data, (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        msg.send plugin.values json.metrics, config
+
+  robot.respond /(newrelic|nr) apps metrics ([0-9]+) graph ([\s\S]+) ([\s\S]+)$/i, (msg) ->
+    data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' + encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
+    request "applications/#{msg.match[2]}/metrics/data.json", data, (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
+
+        console.log(graph_data)
+
+        timeStamp = plugin.formatDate (new Date())
+        imageName = "chart-#{timeStamp}.png"
+
+        jsonData = {}
+        jsonData.labels = ["-30", "-29", "-28", "-27", "-26", "-25", "-24", "-23", "-22", "-21", "-20", "-19", "-18", "-17", "-16", "-15", "-14", "-13", "-12", "-11", "-10", "-09", "-08", "-07", "-06", "-05", "-04", "-03", "-02", "-01"]
+        jsonData.datasets = [{}]
+        jsonData.datasets[0].fillColor = "rgba(102,44,4,0.3)"
+        jsonData.datasets[0].strokeColor = "rgba(0,0,0,1)"
+        jsonData.datasets[0].pointColor = "rgba(255,255,255,1)"
+        jsonData.datasets[0].pointStrokeColor = "#000"
+        jsonData.datasets[0].data = graph_data
+
+        client = s3.createClient(
+          maxAsyncS3: 20
+          s3RetryCount: 3
+          s3RetryDelay: 1000
+          multipartUploadThreshold: 20971520
+          multipartUploadSize: 15728640
+          s3Options:
+            accessKeyId: AwsKey
+            secretAccessKey: AwsSecret
+        )
+
+        canvas = new Canvas(1200, 800)
+        ctx = canvas.getContext("2d")
+        ctx.fillStyle = '#000'
+        max = Math.max.apply(Math, graph_data)
+        steps = 10
+
+        Chart(ctx).Line jsonData,
+          scaleOverlay: not true
+          scaleOverride: true
+          scaleSteps: steps
+          scaleStartValue: 0
+          scaleStepWidth: Math.ceil(max / steps)
+
+        canvas.toBuffer (err, buf) ->
+          throw err  if err
+          fs.writeFile __dirname + "/chart.png", buf
+
+          params =
+            localFile: __dirname + "/chart.png"
+            s3Params:
+              Bucket: S3Bucket
+              Key: imageName
+
+          uploader = client.uploadFile(params)
+          uploader.on "error", (err) ->
+            console.error "unable to upload:", err.stack
+            return
+
+          uploader.on "progress", ->
+            console.log "progress", uploader.progressMd5Amount, uploader.progressAmount, uploader.progressTotal
+            return
+
+          uploader.on "end", ->
+            console.log "done uploading"
+            fs.unlink( __dirname + '/chart.png' )
+            c = S3_BASE_URL + imageName
+            msg.send c
+            return
+
   robot.respond /(newrelic|nr) ktrans id ([0-9]+)$/i, (msg) ->
     request "key_transactions/#{msg.match[2]}.json", '', (err, json) ->
       if err
@@ -131,6 +241,93 @@ Note: In these commands you can shorten newrelic to nr.\n
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.servers json.servers, config
+
+  robot.respond /(newrelic|nr) servers metrics ([0-9]+)$/i, (msg) ->
+    request "servers/#{msg.match[2]}/metrics.json", '', (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        msg.send plugin.metrics json.metrics, config
+
+  robot.respond /(newrelic|nr) servers metrics ([0-9]+) name ([\s\S]+)$/i, (msg) ->
+    data = encodeURIComponent('name') + '=' +  encodeURIComponent(msg.match[3])
+    request "servers/#{msg.match[2]}/metrics.json", data, (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        msg.send plugin.values json.metrics, config
+
+  robot.respond /(newrelic|nr) servers metrics ([0-9]+) graph ([\s\S]+) ([\s\S]+)$/i, (msg) ->
+    data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' + encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
+    request "servers/#{msg.match[2]}/metrics/data.json", data, (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
+
+        console.log(graph_data)
+
+        timeStamp = plugin.formatDate (new Date())
+        imageName = "chart-#{timeStamp}.png"
+
+        jsonData = {}
+        jsonData.labels = ["-30", "-29", "-28", "-27", "-26", "-25", "-24", "-23", "-22", "-21", "-20", "-19", "-18", "-17", "-16", "-15", "-14", "-13", "-12", "-11", "-10", "-09", "-08", "-07", "-06", "-05", "-04", "-03", "-02", "-01"]
+        jsonData.datasets = [{}]
+        jsonData.datasets[0].fillColor = "rgba(102,44,4,0.3)"
+        jsonData.datasets[0].strokeColor = "rgba(0,0,0,1)"
+        jsonData.datasets[0].pointColor = "rgba(255,255,255,1)"
+        jsonData.datasets[0].pointStrokeColor = "#000"
+        jsonData.datasets[0].data = graph_data
+
+        client = s3.createClient(
+          maxAsyncS3: 20
+          s3RetryCount: 3
+          s3RetryDelay: 1000
+          multipartUploadThreshold: 20971520
+          multipartUploadSize: 15728640
+          s3Options:
+            accessKeyId: AwsKey
+            secretAccessKey: AwsSecret
+        )
+
+        canvas = new Canvas(1200, 800)
+        ctx = canvas.getContext("2d")
+        ctx.fillStyle = '#000'
+        max = Math.max.apply(Math, graph_data)
+        steps = 10
+
+        Chart(ctx).Line jsonData,
+          scaleOverlay: not true
+          scaleOverride: true
+          scaleSteps: steps
+          scaleStartValue: 0
+          scaleStepWidth: Math.ceil(max / steps)
+
+        canvas.toBuffer (err, buf) ->
+          throw err  if err
+          fs.writeFile __dirname + "/chart.png", buf
+
+          params =
+            localFile: __dirname + "/chart.png"
+            s3Params:
+              Bucket: S3Bucket
+              Key: imageName
+
+          uploader = client.uploadFile(params)
+          uploader.on "error", (err) ->
+            console.error "unable to upload:", err.stack
+            return
+
+          uploader.on "progress", ->
+            console.log "progress", uploader.progressMd5Amount, uploader.progressAmount, uploader.progressTotal
+            return
+
+          uploader.on "end", ->
+            console.log "done uploading"
+            fs.unlink( __dirname + '/chart.png' )
+            c = S3_BASE_URL + imageName
+            msg.send c
+            return
 
   robot.respond /(newrelic|nr) users email ([a-zA-Z0-9.@]+)$/i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
@@ -263,6 +460,54 @@ plugin.ktran = (ktran, opts = {}) ->
 
   lines.join("\n")
 
+plugin.values = (values, opts = {}) ->
+  lines = values.map (m) ->
+    line = []
+    m_values = m.values || {}
+
+    line.push m.name
+    line.push "\n"
+
+    line.push "Values:  #{m_values.join()}"
+
+    line.join "  "
+  lines.join("\n\n")
+
+plugin.metrics = (metrics, opts = {}) ->
+  lines = metrics.map (m) ->
+    line = []
+
+    line.push m.name
+
+    line.join "  "
+  lines.join("\n")
+
+plugin.graph = (graph, metric_name, value_name, opts = {}) ->
+  result = [graph]
+
+  line = []
+
+  result.map (g) ->
+    metrics = g.metrics
+
+    metrics.map (m) ->
+
+      if m.name == metric_name
+        ts = m.timeslices
+
+        ts.map (t) ->
+          values = [t.values]
+          value = ''
+
+          values.map (v) ->
+            value = v[value_name]
+            if isNaN(value)
+              throw "No-numeric value detected.";
+
+          line.push parseFloat(value)
+
+  return line
+
 plugin.servers = (servers, opts = {}) ->
   up = opts.up || "UP"
   down = opts.down || "DN"
@@ -303,5 +548,13 @@ plugin.users = (users, opts = {}) ->
     line.join "  "
 
   lines.join("\n")
+
+plugin.formatDate = (date) ->
+  timeStamp = [date.getFullYear(), (date.getMonth() + 1), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()].join(" ")
+  RE_findSingleDigits = /\b(\d)\b/g
+
+  # Places a `0` in front of single digit numbers.
+  timeStamp = timeStamp.replace( RE_findSingleDigits, "0$1" )
+  timeStamp.replace /\s/g, ""
 
 module.exports = plugin
