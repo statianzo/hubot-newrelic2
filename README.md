@@ -12,6 +12,12 @@ To support the charting feature you now need to install Cairo on the host system
 
 #### OS X
 
+* Install Node (for hubot)
+
+```
+$ brew install node
+```
+
 * Install Xquartz (for node-canvas)
   * http://xquartz.macosforge.org/landing/
 
