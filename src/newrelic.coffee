@@ -52,6 +52,9 @@ plugin = (robot) ->
   apiBaseUrl = "https://#{apiHost}/v2/"
   config = {}
 
+  keyword1 = 'nr'
+  keyword2 = 'newrelic'
+
   switch robot.adapterName
     when "hipchat"
       config.up = '(continue)'
@@ -71,29 +74,28 @@ plugin = (robot) ->
           else
             cb(null, json) 
 
-  robot.respond /(newrelic|nr)\s+help$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
     msg.send "
-Note: In these commands you can shorten newrelic to nr.\n
-#{robot.name} newrelic help\n
-#{robot.name} newrelic apps\n
-#{robot.name} newrelic apps errors\n
-#{robot.name} newrelic apps name <filter_string>\n
-#{robot.name} newrelic apps instances <app_id>\n
-#{robot.name} newrelic apps hosts <app_id>\n
-#{robot.name} newrelic apps metrics <app_id>\n
-#{robot.name} newrelic apps metrics <app_id> name <filter_string>\n
-#{robot.name} newrelic apps metrics <app_id> chart <metric_name> <metric_type>\n
-#{robot.name} newrelic ktrans\n
-#{robot.name} newrelic ktrans id <ktrans_id>\n
-#{robot.name} newrelic servers\n
-#{robot.name} newrelic servers name <filter_string>\n
-#{robot.name} newrelic servers metrics <server_id>\n
-#{robot.name} newrelic apps metrics <app_id> name <filter_string>\n
-#{robot.name} newrelic apps metrics <app_id> chart <metric_name> <metric_type>\n
-#{robot.name} newrelic users\n
-#{robot.name} newrelic user email <filter_string>"
+#{robot.name} #{keyword1}|#{keyword2} help\n
+#{robot.name} #{keyword1}|#{keyword2} apps\n
+#{robot.name} #{keyword1}|#{keyword2} apps errors\n
+#{robot.name} #{keyword1}|#{keyword2} apps name <filter_string>\n
+#{robot.name} #{keyword1}|#{keyword2} apps instances <app_id>\n
+#{robot.name} #{keyword1}|#{keyword2} apps hosts <app_id>\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id>\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> chart <metric_name> <metric_type>\n
+#{robot.name} #{keyword1}|#{keyword2} ktrans\n
+#{robot.name} #{keyword1}|#{keyword2} ktrans id <ktrans_id>\n
+#{robot.name} #{keyword1}|#{keyword2} servers\n
+#{robot.name} #{keyword1}|#{keyword2} servers name <filter_string>\n
+#{robot.name} #{keyword1}|#{keyword2} servers metrics <server_id>\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> chart <metric_name> <metric_type>\n
+#{robot.name} #{keyword1}|#{keyword2} users\n
+#{robot.name} #{keyword1}|#{keyword2} user email <filter_string>"
 
-  robot.respond /(newrelic|nr) apps$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s*$///i, (msg) ->
     request 'applications.json', '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
@@ -111,28 +113,28 @@ Note: In these commands you can shorten newrelic to nr.\n
         else
           msg.send "No applications with errors."
 
-  robot.respond /(newrelic|nr) ktrans$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+ktrans\s*$///i, (msg) ->
     request 'key_transactions.json', '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.ktrans json.key_transactions, config
 
-  robot.respond /(newrelic|nr) servers$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s*$///i, (msg) ->
     request 'servers.json', '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.servers json.servers, config
 
-  robot.respond /(newrelic|nr) users$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+users\s*$///i, (msg) ->
     request 'users.json', '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.users json.users, config
 
-  robot.respond /(newrelic|nr) apps name ([\s\S]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+name\s+([\s\S]+)\s*$///i, (msg) ->
     data = encodeURIComponent('filter[name]') + '=' +  encodeURIComponent(msg.match[2])
     request 'applications.json', data, (err, json) ->
       if err
@@ -140,28 +142,28 @@ Note: In these commands you can shorten newrelic to nr.\n
       else
         msg.send plugin.apps json.applications, config
 
-  robot.respond /(newrelic|nr) apps hosts ([0-9]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+hosts\s+([0-9]+)\s*$///i, (msg) ->
     request "applications/#{msg.match[2]}/hosts.json", '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.hosts json.application_hosts, config
 
-  robot.respond /(newrelic|nr) apps instances ([0-9]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+instances\s+([0-9]+)\s*$///i, (msg) ->
     request "applications/#{msg.match[2]}/instances.json", '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.instances json.application_instances, config
 
-  robot.respond /(newrelic|nr) apps metrics ([0-9]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+metrics\s+([0-9]+)\s*$///i, (msg) ->
     request "applications/#{msg.match[2]}/metrics.json", '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.metrics json.metrics, config
 
-  robot.respond /(newrelic|nr) apps metrics ([0-9]+) name ([\s\S]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+metrics\s+([0-9]+)\s+name\s+([\s\S]+)\s*$///i, (msg) ->
     data = encodeURIComponent('name') + '=' +  encodeURIComponent(msg.match[3])
     request "applications/#{msg.match[2]}/metrics.json", data, (err, json) ->
       if err
@@ -169,7 +171,7 @@ Note: In these commands you can shorten newrelic to nr.\n
       else
         msg.send plugin.values json.metrics, config
 
-  robot.respond /(newrelic|nr) apps metrics ([0-9]+) graph ([\s\S]+) ([\s\S]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+metrics\s+([0-9]+)\s+graph\s+([\s\S]+)\s+([\s\S]+)\s*$///i, (msg) ->
     data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' + encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
     request "applications/#{msg.match[2]}/metrics/data.json", data, (err, json) ->
       if err
@@ -179,14 +181,14 @@ Note: In these commands you can shorten newrelic to nr.\n
         canvas = plugin.buildChart graph_data
         plugin.uploadChart canvas
 
-  robot.respond /(newrelic|nr) ktrans id ([0-9]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+ktrans\s+id\s+([0-9]+)\s*$///i, (msg) ->
     request "key_transactions/#{msg.match[2]}.json", '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.ktran json.key_transaction, config
 
-  robot.respond /(newrelic|nr) servers name ([a-zA-Z0-9\-.]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+name\s+([a-zA-Z0-9\-.]+)\s*$///i, (msg) ->
     data = encodeURIComponent('filter[name]') + '=' +  encodeURIComponent(msg.match[2])
     request 'servers.json', data, (err, json) ->
       if err
@@ -194,14 +196,14 @@ Note: In these commands you can shorten newrelic to nr.\n
       else
         msg.send plugin.servers json.servers, config
 
-  robot.respond /(newrelic|nr) servers metrics ([0-9]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+metrics\s+([0-9]+)\s*$///i, (msg) ->
     request "servers/#{msg.match[2]}/metrics.json", '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.metrics json.metrics, config
 
-  robot.respond /(newrelic|nr) servers metrics ([0-9]+) name ([\s\S]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+metrics\s+([0-9]+)\s+name\s+([\s\S]+)\s*$///i, (msg) ->
     data = encodeURIComponent('name') + '=' +  encodeURIComponent(msg.match[3])
     request "servers/#{msg.match[2]}/metrics.json", data, (err, json) ->
       if err
@@ -209,7 +211,7 @@ Note: In these commands you can shorten newrelic to nr.\n
       else
         msg.send plugin.values json.metrics, config
 
-  robot.respond /(newrelic|nr) servers metrics ([0-9]+) graph ([\s\S]+) ([\s\S]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+metrics\s+([0-9]+)\s+graph\s+([\s\S]+)\s+([\s\S]+)\s*$///i, (msg) ->
     data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' + encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
     request "servers/#{msg.match[2]}/metrics/data.json", data, (err, json) ->
       if err
@@ -219,7 +221,7 @@ Note: In these commands you can shorten newrelic to nr.\n
         canvas = plugin.buildChart graph_data
         plugin.uploadChart msg, canvas
 
-  robot.respond /(newrelic|nr) users email ([a-zA-Z0-9.@]+)$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+users\s+email\s+([a-zA-Z0-9.@]+)\s*$///i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
     request 'users.json', data, (err, json) ->
       if err
