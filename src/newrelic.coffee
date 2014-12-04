@@ -391,18 +391,16 @@ plugin.buildChart = (graph_data) ->
   max = Math.max.apply(Math, graph_data)
   steps = 10
 
-  console.log(canvas)
-
   nchart(ctx).Line jsonData,
     scaleOverlay: not true
     scaleOverride: true
     scaleSteps: steps
     scaleStartValue: 0
     scaleStepWidth: Math.ceil(max / steps)
-  return canvas
+  return chart
 
 # Write and upload chart to S3
-plugin.uploadChart = (msg, canvas) ->
+plugin.uploadChart = (msg, chart) ->
   timeStamp = plugin.formatDate (new Date())
   imageName = "chart-#{timeStamp}.png"
 
@@ -417,7 +415,7 @@ plugin.uploadChart = (msg, canvas) ->
       secretAccessKey: awsSecret
   )
 
-  canvas.toBuffer (err, buf) ->
+  chart.toBuffer (err, buf) ->
     throw err  if err
     fs.writeFile __dirname + "/chart.png", buf
 
