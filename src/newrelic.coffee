@@ -376,11 +376,15 @@ plugin.metrics = (metrics, opts = {}) ->
 
 # Builds image with canvas and nchart
 plugin.buildChart = (graph_data) ->
+  nr_light = 'rgba(152,220,220,1)'
+  nr_dark  = 'rgba(50,134,152,1)' 
   jsonData = {}
-  jsonData.labels = ["-30", "-29", "-28", "-27", "-26", "-25", "-24", "-23", "-22", "-21", "-20", "-19", "-18", "-17", "-16", "-15", "-14", "-13", "-12", "-11", "-10", "-09", "-08", "-07", "-06", "-05", "-04", "-03", "-02", "-01"]
+
+  jsonData.labels = [-30..-1].map (a) ->
+    a = a.toString()
   jsonData.datasets = [{}]
-  jsonData.datasets[0].fillColor = "rgba(102,44,4,0.3)"
-  jsonData.datasets[0].strokeColor = "rgba(0,0,0,1)"
+  jsonData.datasets[0].fillColor = nr_light
+  jsonData.datasets[0].strokeColor = nr_dark
   jsonData.datasets[0].pointColor = "rgba(255,255,255,1)"
   jsonData.datasets[0].pointStrokeColor = "#000"
   jsonData.datasets[0].data = graph_data
