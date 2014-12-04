@@ -35,18 +35,19 @@
 
 # TODO - deal with pagination. at the moment we are geting a single page, most likely.
 
-plugin = (robot) ->
-  fs = require 'fs'
-  s3 = require 's3'
-  Canvas = require 'canvas'
-  Chart = require 'nchart'
+fs     = require 'fs'
+s3     = require 's3'
+canvas = require 'canvas'
+nchart = require 'nchart'
 
+awsKey    = process.env.HUBOT_AWS_KEY
+awsSecret = process.env.HUBOT_AWS_SECRET
+s3Bucket  = process.env.HUBOT_AWS_S3_BUCKET
+s3BaseUrl = "https://#{s3Bucket}.s3.amazonaws.com/"
+
+plugin = (robot) ->
   apiKey = process.env.HUBOT_NEWRELIC_API_KEY
   apiHost = process.env.HUBOT_NEWRELIC_API_HOST
-  AwsKey = process.env.HUBOT_AWS_KEY
-  AwsSecret = process.env.HUBOT_AWS_SECRET
-  S3Bucket = process.env.HUBOT_AWS_S3_BUCKET
-  S3_BASE_URL = "https://#{S3Bucket}.s3.amazonaws.com/"
   apiBaseUrl = "https://#{apiHost}/v2/"
   config = {}
 
@@ -67,9 +68,9 @@ plugin = (robot) ->
           if json.error
             cb(new Error(body))
           else
-            cb(null, json)
+            cb(null, json) 
 
-  robot.respond /(newrelic|nr) help$/i, (msg) ->
+  robot.respond /(newrelic|nr)\s+help$/i, (msg) ->
     msg.send "
 Note: In these commands you can shorten newrelic to nr.\n
 #{robot.name} newrelic help\n
@@ -94,7 +95,7 @@ Note: In these commands you can shorten newrelic to nr.\n
     request 'applications.json', '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
-      else
+      else 
         msg.send plugin.apps json.applications, config
 
   robot.respond /(newrelic|nr) ktrans$/i, (msg) ->
@@ -162,70 +163,8 @@ Note: In these commands you can shorten newrelic to nr.\n
         msg.send "Failed: #{err.message}"
       else
         graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
-
-        console.log(graph_data)
-
-        timeStamp = plugin.formatDate (new Date())
-        imageName = "chart-#{timeStamp}.png"
-
-        jsonData = {}
-        jsonData.labels = ["-30", "-29", "-28", "-27", "-26", "-25", "-24", "-23", "-22", "-21", "-20", "-19", "-18", "-17", "-16", "-15", "-14", "-13", "-12", "-11", "-10", "-09", "-08", "-07", "-06", "-05", "-04", "-03", "-02", "-01"]
-        jsonData.datasets = [{}]
-        jsonData.datasets[0].fillColor = "rgba(102,44,4,0.3)"
-        jsonData.datasets[0].strokeColor = "rgba(0,0,0,1)"
-        jsonData.datasets[0].pointColor = "rgba(255,255,255,1)"
-        jsonData.datasets[0].pointStrokeColor = "#000"
-        jsonData.datasets[0].data = graph_data
-
-        client = s3.createClient(
-          maxAsyncS3: 20
-          s3RetryCount: 3
-          s3RetryDelay: 1000
-          multipartUploadThreshold: 20971520
-          multipartUploadSize: 15728640
-          s3Options:
-            accessKeyId: AwsKey
-            secretAccessKey: AwsSecret
-        )
-
-        canvas = new Canvas(1200, 800)
-        ctx = canvas.getContext("2d")
-        ctx.fillStyle = '#000'
-        max = Math.max.apply(Math, graph_data)
-        steps = 10
-
-        Chart(ctx).Line jsonData,
-          scaleOverlay: not true
-          scaleOverride: true
-          scaleSteps: steps
-          scaleStartValue: 0
-          scaleStepWidth: Math.ceil(max / steps)
-
-        canvas.toBuffer (err, buf) ->
-          throw err  if err
-          fs.writeFile __dirname + "/chart.png", buf
-
-          params =
-            localFile: __dirname + "/chart.png"
-            s3Params:
-              Bucket: S3Bucket
-              Key: imageName
-
-          uploader = client.uploadFile(params)
-          uploader.on "error", (err) ->
-            console.error "unable to upload:", err.stack
-            return
-
-          uploader.on "progress", ->
-            console.log "progress", uploader.progressMd5Amount, uploader.progressAmount, uploader.progressTotal
-            return
-
-          uploader.on "end", ->
-            console.log "done uploading"
-            fs.unlink( __dirname + '/chart.png' )
-            c = S3_BASE_URL + imageName
-            msg.send c
-            return
+        canvas = plugin.buildChart graph_data
+        plugin.uploadChart canvas
 
   robot.respond /(newrelic|nr) ktrans id ([0-9]+)$/i, (msg) ->
     request "key_transactions/#{msg.match[2]}.json", '', (err, json) ->
@@ -264,70 +203,8 @@ Note: In these commands you can shorten newrelic to nr.\n
         msg.send "Failed: #{err.message}"
       else
         graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
-
-        console.log(graph_data)
-
-        timeStamp = plugin.formatDate (new Date())
-        imageName = "chart-#{timeStamp}.png"
-
-        jsonData = {}
-        jsonData.labels = ["-30", "-29", "-28", "-27", "-26", "-25", "-24", "-23", "-22", "-21", "-20", "-19", "-18", "-17", "-16", "-15", "-14", "-13", "-12", "-11", "-10", "-09", "-08", "-07", "-06", "-05", "-04", "-03", "-02", "-01"]
-        jsonData.datasets = [{}]
-        jsonData.datasets[0].fillColor = "rgba(102,44,4,0.3)"
-        jsonData.datasets[0].strokeColor = "rgba(0,0,0,1)"
-        jsonData.datasets[0].pointColor = "rgba(255,255,255,1)"
-        jsonData.datasets[0].pointStrokeColor = "#000"
-        jsonData.datasets[0].data = graph_data
-
-        client = s3.createClient(
-          maxAsyncS3: 20
-          s3RetryCount: 3
-          s3RetryDelay: 1000
-          multipartUploadThreshold: 20971520
-          multipartUploadSize: 15728640
-          s3Options:
-            accessKeyId: AwsKey
-            secretAccessKey: AwsSecret
-        )
-
-        canvas = new Canvas(1200, 800)
-        ctx = canvas.getContext("2d")
-        ctx.fillStyle = '#000'
-        max = Math.max.apply(Math, graph_data)
-        steps = 10
-
-        Chart(ctx).Line jsonData,
-          scaleOverlay: not true
-          scaleOverride: true
-          scaleSteps: steps
-          scaleStartValue: 0
-          scaleStepWidth: Math.ceil(max / steps)
-
-        canvas.toBuffer (err, buf) ->
-          throw err  if err
-          fs.writeFile __dirname + "/chart.png", buf
-
-          params =
-            localFile: __dirname + "/chart.png"
-            s3Params:
-              Bucket: S3Bucket
-              Key: imageName
-
-          uploader = client.uploadFile(params)
-          uploader.on "error", (err) ->
-            console.error "unable to upload:", err.stack
-            return
-
-          uploader.on "progress", ->
-            console.log "progress", uploader.progressMd5Amount, uploader.progressAmount, uploader.progressTotal
-            return
-
-          uploader.on "end", ->
-            console.log "done uploading"
-            fs.unlink( __dirname + '/chart.png' )
-            c = S3_BASE_URL + imageName
-            msg.send c
-            return
+        canvas = plugin.buildChart graph_data
+        plugin.uploadChart msg, canvas
 
   robot.respond /(newrelic|nr) users email ([a-zA-Z0-9.@]+)$/i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
@@ -482,6 +359,74 @@ plugin.metrics = (metrics, opts = {}) ->
     line.join "  "
   lines.join("\n")
 
+# Builds image with canvas and nchart
+plugin.buildChart = (graph_data) ->
+  jsonData = {}
+  jsonData.labels = ["-30", "-29", "-28", "-27", "-26", "-25", "-24", "-23", "-22", "-21", "-20", "-19", "-18", "-17", "-16", "-15", "-14", "-13", "-12", "-11", "-10", "-09", "-08", "-07", "-06", "-05", "-04", "-03", "-02", "-01"]
+  jsonData.datasets = [{}]
+  jsonData.datasets[0].fillColor = "rgba(102,44,4,0.3)"
+  jsonData.datasets[0].strokeColor = "rgba(0,0,0,1)"
+  jsonData.datasets[0].pointColor = "rgba(255,255,255,1)"
+  jsonData.datasets[0].pointStrokeColor = "#000"
+  jsonData.datasets[0].data = graph_data
+
+  chart = new canvas(1200, 800)
+  ctx = chart.getContext("2d")
+  ctx.fillStyle = '#000'
+  max = Math.max.apply(Math, graph_data)
+  steps = 10
+
+  console.log(canvas)
+
+  nchart(ctx).Line jsonData,
+    scaleOverlay: not true
+    scaleOverride: true
+    scaleSteps: steps
+    scaleStartValue: 0
+    scaleStepWidth: Math.ceil(max / steps)
+  return canvas
+
+# Write and upload chart to S3
+plugin.uploadChart = (msg, canvas) ->
+  timeStamp = plugin.formatDate (new Date())
+  imageName = "chart-#{timeStamp}.png"
+
+  client = s3.createClient(
+    maxAsyncS3: 20
+    s3RetryCount: 3
+    s3RetryDelay: 1000
+    multipartUploadThreshold: 20971520
+    multipartUploadSize: 15728640
+    s3Options:
+      accessKeyId: awsKey
+      secretAccessKey: awsSecret
+  )
+
+  canvas.toBuffer (err, buf) ->
+    throw err  if err
+    fs.writeFile __dirname + "/chart.png", buf
+
+    params =
+      localFile: __dirname + "/chart.png"
+      s3Params:
+        Bucket: s3Bucket
+        Key: imageName
+
+    uploader = client.uploadFile(params)
+    uploader.on "error", (err) ->
+      console.error "unable to upload:", err.stack
+      return
+
+    uploader.on "progress", ->
+      console.log "progress", uploader.progressMd5Amount, uploader.progressAmount, uploader.progressTotal
+      return
+
+    uploader.on "end", ->
+      console.log "done uploading"
+      fs.unlink( __dirname + '/chart.png' )
+      msg.send s3BaseUrl + imageName
+      return
+      
 plugin.graph = (graph, metric_name, value_name, opts = {}) ->
   result = [graph]
 
