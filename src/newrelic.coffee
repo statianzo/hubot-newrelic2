@@ -71,7 +71,7 @@ plugin = (robot) ->
           if json.error
             cb(new Error(body))
           else
-            cb(null, json) 
+            cb(null, json)
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
     msg.send "
@@ -159,14 +159,15 @@ plugin = (robot) ->
         msg.send plugin.values json.metrics, config
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+metrics\s+([0-9]+)\s+graph\s+([\s\S]+)\s+([\s\S]+)\s*$///i, (msg) ->
-    data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' + encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
+    data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' +
+           encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
+
     request "applications/#{msg.match[2]}/metrics/data.json", data, (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
-        canvas = plugin.buildChart graph_data
-        plugin.uploadChart canvas
+        plugin.uploadChart msg, plugin.buildChart graph_data
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+ktrans\s+id\s+([0-9]+)\s*$///i, (msg) ->
     request "key_transactions/#{msg.match[2]}.json", '', (err, json) ->
@@ -205,8 +206,7 @@ plugin = (robot) ->
         msg.send "Failed: #{err.message}"
       else
         graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
-        canvas = plugin.buildChart graph_data
-        plugin.uploadChart msg, canvas
+        plugin.uploadChart msg, plugin.buildChart graph_data
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+users\s+email\s+([a-zA-Z0-9.@]+)\s*$///i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
@@ -364,7 +364,7 @@ plugin.metrics = (metrics, opts = {}) ->
 # Builds image with canvas and nchart
 plugin.buildChart = (graph_data) ->
   nr_light = 'rgba(152,220,220,1)'
-  nr_dark  = 'rgba(50,134,152,1)' 
+  nr_dark  = 'rgba(50,134,152,1)'
   jsonData = {}
 
   jsonData.labels = [-30..-1].map (a) ->
@@ -376,7 +376,7 @@ plugin.buildChart = (graph_data) ->
   jsonData.datasets[0].pointStrokeColor = "#000"
   jsonData.datasets[0].data = graph_data
 
-  chart = new canvas(1200, 800)
+  chart = new canvas(1000, 800)
   ctx = chart.getContext("2d")
   ctx.fillStyle = '#000'
   max = Math.max.apply(Math, graph_data)
