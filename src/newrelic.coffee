@@ -15,14 +15,15 @@
 #   hubot newrelic apps hosts <app_id> - Returns a list of one application's hosts
 #   hubot newrelic apps metrics <app_id> - Returns a list of one application's metric names
 #   hubot newrelic apps metrics <app_id> name <filter_string> - Returns a filtered list of metric names and all valid types
-#   hubot newrelic apps metrics <app_id> chart <metric_name> <metric_type> - Returns a chart for the metric/type based on the last 30 minutes of data
+#   hubot newrelic apps metrics <app_id> graph <metric_name> <metric_type> - Returns a graph for the metric/type based on the last 30 minutes of data
 #   hubot newrelic ktrans - Lists stats for all key transactions from New Relic
 #   hubot newrelic ktrans id <ktrans_id> - Returns a single key transaction
 #   hubot newrelic servers - Returns statistics for all servers from New Relic
 #   hubot newrelic servers name <filter_string> - Returns a filtered list of servers
 #   hubot newrelic servers metrics <server_id> - Returns a list of one server's metric names
 #   hubot newrelic servers metrics <app_id> name <filter_string> - Returns a filtered list of metric names and all valid types
-#   hubot newrelic servers metrics <app_id> chart <metric_name> <metric_type> - Returns a chart for the metric/type based on the last 30 minutes of data
+#   hubot newrelic servers metrics <app_id||filter_string> graph <metric_name> <metric_type> - Returns a graph for the metric/type based on the last 30 minutes of data
+#
 #   hubot newrelic users - Returns a list of all account users from New Relic
 #   hubot newrelic user email <filter_string> - Returns a filtered list of account users
 #
@@ -137,14 +138,16 @@ plugin = (robot) ->
 #{robot.name} #{keyword1}|#{keyword2} apps hosts <app_id>\n
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id>\n
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> chart <metric_name> <metric_type>\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
 #{robot.name} #{keyword1}|#{keyword2} ktrans\n
 #{robot.name} #{keyword1}|#{keyword2} ktrans id <ktrans_id>\n
 #{robot.name} #{keyword1}|#{keyword2} servers\n
 #{robot.name} #{keyword1}|#{keyword2} servers name <filter_string>\n
 #{robot.name} #{keyword1}|#{keyword2} servers metrics <server_id>\n
+#{robot.name} #{keyword1}|#{keyword2} servers metrics <app_id||filter_string> graph <metric_name> <metric_type>\n
+#{robot.name} #{keyword1}|#{keyword2} servers <app_id||filter_string> load||disk||net||network||cpu||mem||memory
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> chart <metric_name> <metric_type>\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
 #{robot.name} #{keyword1}|#{keyword2} users\n
 #{robot.name} #{keyword1}|#{keyword2} user email <filter_string>"
 
