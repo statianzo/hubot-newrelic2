@@ -73,6 +73,21 @@ plugin = (robot) ->
           else
             cb(null, json)
 
+  # Helper function for fetching server(s) by name or ID
+  getServer = (server) ->
+    console.log("Did we get here?")
+    filter = 'filter[name]'
+
+    if server.match(/^\d+$/g)
+      filter = 'filter[ids]'
+
+    data = encodeURIComponent(filter) + '=' +  encodeURIComponent(server)
+    request 'servers.json', data, (err, json) ->
+      if err
+        return "Failed: #{err.message}")
+      else
+        return json
+
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
     msg.send "
 #{robot.name} #{keyword1}|#{keyword2} help\n
