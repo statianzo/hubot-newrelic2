@@ -75,19 +75,19 @@ plugin = (robot) ->
             cb(null, json)
 
   # Helper function for fetching server(s) by name or ID
-  getServer = (server) ->
-    console.log("Did we get here?")
+  getServer = (server, cb) ->
     filter = 'filter[name]'
 
     if server.match(/^\d+$/g)
       filter = 'filter[ids]'
 
     data = encodeURIComponent(filter) + '=' +  encodeURIComponent(server)
+
     request 'servers.json', data, (err, json) ->
       if err
-        return "Failed: #{err.message}")
+        cb(false, err.message)
       else
-        return json
+        cb(true, json)
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
     msg.send "
@@ -227,14 +227,32 @@ plugin = (robot) ->
       else
         msg.send plugin.values json.metrics, config
 
-  robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+metrics\s+([0-9]+)\s+graph\s+([\s\S]+)\s+([\s\S]+)\s*$///i, (msg) ->
-    data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' + encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
-    request "servers/#{msg.match[2]}/metrics/data.json", data, (err, json) ->
-      if err
-        msg.send "Failed: #{err.message}"
-      else
-        graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
-        plugin.uploadChart msg, plugin.buildChart graph_data
+  # Graph specific metric data for a given server (accepts server ID or name)
+  robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+metrics\s+([a-zA-Z0-9_\-\.]+)\s+graph\s+([\s\S]+)\s+([\s\S]+)\s*$///i, (msg) ->
+    getServer msg.match[2], (status, details) ->
+      if ! status
+        msg.send "Failed: #{details}"
+        return
+
+      if details.servers.length == 0
+        msg.send "No servers found by that name/id"
+        return
+
+      if details.servers.length > 1
+        msg.send "Result set contains #{details.servers.length} servers; please clarify:"
+        servers = details.servers.map (server) -> server.name
+        msg.send servers.join(', ')
+        return
+
+      server_id = details.servers[0].id
+
+      data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' + encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
+      request "servers/#{server_id}/metrics/data.json", data, (err, json) ->
+        if err
+          msg.send "Failed: #{err.message}"
+        else
+          graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
+          plugin.uploadChart msg, plugin.buildChart graph_data
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+users\s+email\s+([a-zA-Z0-9.@]+)\s*$///i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
