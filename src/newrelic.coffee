@@ -221,7 +221,7 @@ plugin = (robot) ->
       if err
         msg.send "Failed: #{err.message}"
       else
-        graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
+        graph_data = plugin.graph json.metric_data, [msg.match[3]], msg.match[4], config
         plugin.uploadChart msg, plugin.buildChart graph_data
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+ktrans\s+id\s+([0-9]+)\s*$///i, (msg) ->
@@ -270,7 +270,7 @@ plugin = (robot) ->
           msg.send "Failed: #{err.message}"
         else
           msg.send "New Relic UI: #{nr_ui_url}"
-          graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
+          graph_data = plugin.graph json.metric_data, [msg.match[3]], msg.match[4], config
           plugin.uploadChart msg, plugin.buildChart graph_data
 
   # 'Shortcut' graph function
@@ -281,25 +281,36 @@ plugin = (robot) ->
         return
 
       server_id = details.servers[0].id
-      metric_map = {'load' : ['System/Load'],\
-                    'cpu'  : ['System/CPU/IO Wait/percent',\
-                              'System/CPU/System/percent',\
-                              'System/CPU/User/percent']}
+      metric_map = {'load'    : ['System/Load'],\
+                    'cpu'     : ['System/CPU/IO Wait/percent',\
+                                 'System/CPU/System/percent',\
+                                 'System/CPU/User/percent'],\
+                    'mem'     : ['System/Memory/Used/bytes'],\
+                    'memory'  : ['System/Memory/Used/bytes'],\
+                    'net'     : ['System/Network/All/Received/bytes/sec',\
+                                 'System/Network/All/Transmitted/bytes/sec'],\
+                    'network' : ['System/Network/All/Received/bytes/sec',\
+                                 'System/Network/All/Transmitted/bytes/sec'],\
+                    'disk'    : ['System/Disk/All/Reads/bytes/sec',\
+                                 'System/Disk/All/Writes/bytes/sec']}
 
       graph_type = msg.match[3]
+      value_type = 'average_value'
       data = ''
+
+      if graph_type == "net" || graph_type == "network" || graph_type == 'disk'
+        value_type = 'per_second'
 
       for value in metric_map[graph_type]
         data = data + encodeURIComponent('names[]') + '=' + encodeURIComponent(value) + '&'
 
-      data = data + encodeURIComponent('values[]') + '=' + 'average_value' + '&summarize=false&raw=true'
+      data = data + encodeURIComponent('values[]') + '=' + value_type + '&summarize=false&raw=true'
+
       request "servers/#{server_id}/metrics/data.json", data, (err, json) ->
         if err
           msg.send "Failed: #{err.message}"
         else
-          # This needs to be updated to support multiple data sets within the same graph
-          # NOTE2: And the graphs seem to be broken at the moment
-          graph_data = plugin.graph json.metric_data, metric_map[graph_type], 'average_value', config
+          graph_data = plugin.graph json.metric_data, metric_map[graph_type], value_type, config
           plugin.uploadChart msg, plugin.buildChart graph_data
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+users\s+email\s+([a-zA-Z0-9.@]+)\s*$///i, (msg) ->
@@ -455,25 +466,41 @@ plugin.metrics = (metrics, opts = {}) ->
     line.join "  "
   lines.join("\n")
 
-# Builds image with canvas and nchart
+# Build a multi-plot chart (limitation: max 5 separate data plots)
 plugin.buildChart = (graph_data) ->
-  nr_light = 'rgba(152,220,220,1)'
-  nr_dark  = 'rgba(50,134,152,1)'
+  colors = ["rgba(50,134,152,0.4)",\  # NR light
+            "rgba(166,209,123,0.4)",\ # Green
+            "rgba(241,128,107,0.4)",\ # Salmon
+            "rgba(241,209,102,0.4)",\ # Golden
+            "rgba(168,119,179,0.4)"]  # Purple
+
   jsonData = {}
 
   jsonData.labels = [-30..-1].map (a) ->
     a = a.toString()
+
+  # Hack: pad the first label with a few extra spaces so there's no clipping
+  jsonData.labels[0] = '   -30'
   jsonData.datasets = [{}]
-  jsonData.datasets[0].fillColor = nr_light
-  jsonData.datasets[0].strokeColor = nr_dark
-  jsonData.datasets[0].pointColor = "rgba(255,255,255,1)"
-  jsonData.datasets[0].pointStrokeColor = "#000"
-  jsonData.datasets[0].data = graph_data
+  i = 0
+
+  if Object.keys(graph_data).length > colors.length
+    throw "Got more data sets than we can handle (max #{colors.length}"
+
+  for k, v of graph_data
+    jsonData.datasets[i] = {}
+    jsonData.datasets[i].label = k
+    jsonData.datasets[i].fillColor = colors[i]
+    jsonData.datasets[i].strokeColor = "rgba(50,134,152,1)" # NR dark
+    jsonData.datasets[i].pointColor = "rgba(255,255,255,1)"
+    jsonData.datasets[i].pointStrokeColor = "#000"
+    jsonData.datasets[i].data = v
+    i++
 
   chart = new canvas(1000, 800)
   ctx = chart.getContext("2d")
   ctx.fillStyle = '#000'
-  max = Math.max.apply(Math, graph_data)
+  max = Math.max.apply(Math, jsonData.datasets[0].data)
   steps = 10
 
   nchart(ctx).Line jsonData,
@@ -481,6 +508,7 @@ plugin.buildChart = (graph_data) ->
     scaleOverride: true
     scaleSteps: steps
     scaleStartValue: 0
+    datasetFill : true
     scaleStepWidth: Math.ceil(max / steps)
   return chart
 
@@ -524,30 +552,35 @@ plugin.uploadChart = (msg, chart) ->
       fs.unlink( __dirname + '/chart.png' )
       msg.send s3BaseUrl + imageName
       return
-      
-plugin.graph = (graph, metric_name, value_name, opts = {}) ->
+
+# Convert NR data set into a simpler object to be consumed by nchart lib
+# Return data set: {'metric_name' : [1, 2, 3], 'metric_name2' : [1, 2, 3, 4]}
+plugin.graph = (graph, metric_names, value_name, opts = {}) ->
   result = [graph]
 
-  line = []
+  line = {}
+
+  for i in metric_names
+    line[i] = []
 
   result.map (g) ->
     metrics = g.metrics
 
     metrics.map (m) ->
+      for metric_name in metric_names
+        if m.name == metric_name
+          ts = m.timeslices
 
-      if m.name == metric_name
-        ts = m.timeslices
+          ts.map (t) ->
+            values = [t.values]
+            value = ''
 
-        ts.map (t) ->
-          values = [t.values]
-          value = ''
+            values.map (v) ->
+              value = v[value_name]
+              if isNaN(value)
+                throw "No-numeric value detected.";
 
-          values.map (v) ->
-            value = v[value_name]
-            if isNaN(value)
-              throw "No-numeric value detected.";
-
-          line.push parseFloat(value)
+            line[metric_name].push parseFloat(value)
 
   return line
 
