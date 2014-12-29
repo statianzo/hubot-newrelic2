@@ -43,6 +43,8 @@ See: https://github.com/Automattic/node-canvas/wiki
 npm install --save hubot-newrelic2
 ```
 
+### Environment variables
+
 * Add `"hubot-newrelic2"` into your hubot project's `external-scripts.json`
 * Add `"hubot-newrelic2": "^0.2.0"` (or other version) into your `package.json`
 * Set `HUBOT_NEWRELIC_API_KEY` to your New Relic API key
@@ -50,6 +52,7 @@ npm install --save hubot-newrelic2
 * Set `HUBOT_AWS_KEY` to a valid AWS key
 * Set `HUBOT_AWS_SECRET` to the AWS secret for your AWS key
 * Set `HUBOT_AWS_S3_BUCKET` to an S3 bucket that your key can write to and the world can read from.
+* Set `HUBOT_NEWRELIC_URL` to New Relic's main UI address; ie. `https://newrelic.com`
 
 ## Usage
 
@@ -131,10 +134,21 @@ hubot newrelic servers metrics <app_id>
 hubot newrelic servers metrics <app_id> name <filter_string>
 ```
 
-* Returns a chart for the metric/type based on the last 30 minutes of data
+* Returns a graph for the metric/type based on the last 30 minutes of data
 ```
-hubot newrelic servers metrics <app_id> chart <metric_name> <metric_type>
+hubot newrelic servers metrics <app_id||filter_string> graph <metric_name> <metric_type>
 ```
+** NOTE: If specifying a filter and more than 1 result is returned, the bot will echo the list of all matched servers and ask for you to clarify which server you meant to query
+
+* 'Shorthand' graph functionality
+```
+hubot newrelic servers <app_id||filter_string> graph load
+hubot newrelic servers <app_id||filter_string> graph cpu
+hubot newrelic servers <app_id||filter_string> graph mem||memory
+hubot newrelic servers <app_id||filter_string> graph net||network
+hubot newrelic servers <app_id||filter_string> graph disk
+```
+
 
 #### User Related Commands
 
