@@ -74,6 +74,28 @@ plugin = (robot) ->
           else
             cb(null, json)
 
+  # Helper function for building a New Relic UI URL
+  buildURL = (server, graph_type) ->
+    base_url = process.env.HUBOT_NEWRELIC_URL
+
+    if (! base_url?)
+      return "HUBOT_NEWRELIC_URL environment variable not defined"
+
+    if (! server.account_id?)
+      return "Unable to find account id in server object"
+
+    built_url = base_url + "/accounts/" + server.account_id + "/servers/" + server.id
+
+    if graph_type.match(/disk/i)
+      return built_url + "/disks"
+    else if graph_type.match(/network/i)
+      return built_url + "/network"
+    else if graph_type.match(/process/i)
+      return built_url + "/processes"
+    else
+      # Overview
+      return built_url
+
   # Helper function for fetching server(s) by name or ID
   getServer = (server, cb) ->
     filter = 'filter[name]'
@@ -245,14 +267,18 @@ plugin = (robot) ->
         return
 
       server_id = details.servers[0].id
+      nr_ui_url = buildURL details.servers[0], msg.match[3]
 
       data = encodeURIComponent('names[]') + '=' + encodeURIComponent(msg.match[3]) + '&' + encodeURIComponent('values[]') + '=' + encodeURIComponent(msg.match[4]) + '&summarize=false&raw=true'
       request "servers/#{server_id}/metrics/data.json", data, (err, json) ->
         if err
           msg.send "Failed: #{err.message}"
         else
+          msg.send "New Relic UI: #{nr_ui_url}"
           graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
           plugin.uploadChart msg, plugin.buildChart graph_data
+
+  # 
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+users\s+email\s+([a-zA-Z0-9.@]+)\s*$///i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
