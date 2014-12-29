@@ -79,7 +79,7 @@ plugin = (robot) ->
     base_url = process.env.HUBOT_NEWRELIC_URL
 
     if (! base_url?)
-      return "HUBOT_NEWRELIC_URL environment variable not defined"
+      return "HUBOT_NEWRELIC_URL environment varia2ble not defined"
 
     if (! server.account_id?)
       return "Unable to find account id in server object"
@@ -286,26 +286,34 @@ plugin = (robot) ->
           graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
           plugin.uploadChart msg, plugin.buildChart graph_data
 
-  # /nr servers chi-prod graph disk
+  # 'Shortcut' graph function
+  robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+([a-zA-Z0-9_\-\.]+)\s+graph\s+(load|network|net|disk|mem|memory|cpu)\s*$///i, (msg) ->
+    getServer msg.match[2], (status, details) ->
+      # Perform some basic checks
+      if ! getServerVerify status, details, msg
+        return
 
-  # /nr servers chi-prod graph network
+      server_id = details.servers[0].id
+      metric_map = {'load' : ['System/Load'],\
+                    'cpu'  : ['System/CPU/IO Wait/percent',\
+                              'System/CPU/System/percent',\
+                              'System/CPU/User/percent']}
 
-  # /nr servers chi-prod graph load
-  # robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+([a-zA-Z0-9_\-\.]+)\s+graph\s+load)\s*$///i, (msg) ->
-  #   getServer msg.match[2], (status, details) ->
-  #     if ! status
-  #       msg.send "Failed: #{details}"
-  #       return
+      graph_type = msg.match[3]
+      data = ''
 
-  #     if details.servers.length == 0
-  #       msg.send "No servers found by that name/id"
-  #       return
+      for value in metric_map[graph_type]
+        data = data + encodeURIComponent('names[]') + '=' + encodeURIComponent(value) + '&'
 
-  #     if details.servers.length > 1
-  #       msg.send "Result set contains #{details.servers.length} servers; please clarify:"
-  #       servers = details.servers.map (server) -> server.name
-  #       msg.send servers.join(', ')
-  #       return
+      data = data + encodeURIComponent('values[]') + '=' + 'average_value' + '&summarize=false&raw=true'
+      request "servers/#{server_id}/metrics/data.json", data, (err, json) ->
+        if err
+          msg.send "Failed: #{err.message}"
+        else
+          # This needs to be updated to support multiple data sets within the same graph
+          # NOTE2: And the graphs seem to be broken at the moment
+          graph_data = plugin.graph json.metric_data, metric_map[graph_type], 'average_value', config
+          plugin.uploadChart msg, plugin.buildChart graph_data
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+users\s+email\s+([a-zA-Z0-9.@]+)\s*$///i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
