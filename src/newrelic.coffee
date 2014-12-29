@@ -111,6 +111,24 @@ plugin = (robot) ->
       else
         cb(true, json)
 
+
+  getServerVerify = (status, details, msg) ->
+    if ! status
+      msg.send "Failed: #{details}"
+      return false
+
+    if details.servers.length == 0
+      msg.send "No servers found by that name/id"
+      return false
+
+    if details.servers.length > 1
+      msg.send "Result set contains #{details.servers.length} servers; please clarify:"
+      servers = details.servers.map (server) -> server.name
+      msg.send servers.join(', ')
+      return false
+
+    return true
+
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
     msg.send "
 #{robot.name} #{keyword1}|#{keyword2} help\n
@@ -252,18 +270,8 @@ plugin = (robot) ->
   # Graph specific metric data for a given server (accepts server ID or name)
   robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+metrics\s+([a-zA-Z0-9_\-\.]+)\s+graph\s+([\s\S]+)\s+([\s\S]+)\s*$///i, (msg) ->
     getServer msg.match[2], (status, details) ->
-      if ! status
-        msg.send "Failed: #{details}"
-        return
-
-      if details.servers.length == 0
-        msg.send "No servers found by that name/id"
-        return
-
-      if details.servers.length > 1
-        msg.send "Result set contains #{details.servers.length} servers; please clarify:"
-        servers = details.servers.map (server) -> server.name
-        msg.send servers.join(', ')
+      # Perform some basic checks
+      if ! getServerVerify status, details, msg
         return
 
       server_id = details.servers[0].id
@@ -278,7 +286,26 @@ plugin = (robot) ->
           graph_data = plugin.graph json.metric_data, msg.match[3], msg.match[4], config
           plugin.uploadChart msg, plugin.buildChart graph_data
 
-  # 
+  # /nr servers chi-prod graph disk
+
+  # /nr servers chi-prod graph network
+
+  # /nr servers chi-prod graph load
+  # robot.respond ///(#{keyword1}|#{keyword2})\s+servers\s+([a-zA-Z0-9_\-\.]+)\s+graph\s+load)\s*$///i, (msg) ->
+  #   getServer msg.match[2], (status, details) ->
+  #     if ! status
+  #       msg.send "Failed: #{details}"
+  #       return
+
+  #     if details.servers.length == 0
+  #       msg.send "No servers found by that name/id"
+  #       return
+
+  #     if details.servers.length > 1
+  #       msg.send "Result set contains #{details.servers.length} servers; please clarify:"
+  #       servers = details.servers.map (server) -> server.name
+  #       msg.send servers.join(', ')
+  #       return
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+users\s+email\s+([a-zA-Z0-9.@]+)\s*$///i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
