@@ -21,8 +21,8 @@
 #   hubot newrelic servers - Returns statistics for all servers from New Relic
 #   hubot newrelic servers name <filter_string> - Returns a filtered list of servers
 #   hubot newrelic servers metrics <server_id> - Returns a list of one server's metric names
-#   hubot newrelic servers metrics <app_id> name <filter_string> - Returns a filtered list of metric names and all valid types
-#   hubot newrelic servers metrics <app_id||filter_string> graph <metric_name> <metric_type> - Returns a graph for the metric/type based on the last 30 minutes of data
+#   hubot newrelic servers metrics <server_id> name <filter_string> - Returns a filtered list of metric names and all valid types
+#   hubot newrelic servers metrics <server_id||filter_string> graph <metric_name> <metric_type> - Returns a graph for the metric/type based on the last 30 minutes of data
 #
 #   hubot newrelic users - Returns a list of all account users from New Relic
 #   hubot newrelic user email <filter_string> - Returns a filtered list of account users
@@ -79,7 +79,7 @@ plugin = (robot) ->
     base_url = process.env.HUBOT_NEWRELIC_URL
 
     if (! base_url?)
-      return "HUBOT_NEWRELIC_URL environment varia2ble not defined"
+      return "HUBOT_NEWRELIC_URL environment variable not defined"
 
     if (! server.account_id?)
       return "Unable to find account id in server object"
