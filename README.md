@@ -8,7 +8,9 @@ New Relic stats from hubot
 
 
 ### Charting
-To support the charting feature you now need to install Cairo on the host system. this is the lower-level framework used by node-canvas.
+
+* To support the charting feature you now need to install Cairo on the host system. This is the lower-level framework used by node-canvas.
+* An Amazon S3 bucket is also utilized to save the dynamically generated charts.
 
 #### OS X
 
