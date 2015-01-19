@@ -129,6 +129,38 @@ plugin = (robot) ->
 
     return true
 
+  # Helper function for fetching app(s) by name or ID
+  getApps = (app, cb) ->
+    filter = 'filter[name]'
+
+    if app.match(/^\d+$/g)
+      filter = 'filter[ids]'
+
+    data = encodeURIComponent(filter) + '=' +  encodeURIComponent(app)
+
+    request 'applications.json', data, (err, json) ->
+      if err
+        cb(false, err.message)
+      else
+        cb(true, json)
+
+  getAppsVerify = (status, details, msg) ->
+    if ! status
+      msg.send "Failed: #{details}"
+      return false
+
+    if details.applications.length == 0
+      msg.send "No apps found by that name/id"
+      return false
+
+    if details.applications.length > 1
+      msg.send "Result set contains #{details.applications.length} servers; please clarify:"
+      apps = details.applications.map (app) -> app.name
+      msg.send apps.join(', ')
+      return false
+
+    return true
+
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
     msg.send "
 #{robot.name} #{keyword1}|#{keyword2} help\n
@@ -145,9 +177,10 @@ plugin = (robot) ->
 #{robot.name} #{keyword1}|#{keyword2} servers name <filter_string>\n
 #{robot.name} #{keyword1}|#{keyword2} servers metrics <server_id>\n
 #{robot.name} #{keyword1}|#{keyword2} servers metrics <app_id||filter_string> graph <metric_name> <metric_type>\n
-#{robot.name} #{keyword1}|#{keyword2} servers <app_id||filter_string> load||disk||net||network||cpu||mem||memory
+#{robot.name} #{keyword1}|#{keyword2} servers <app_id||filter_string> graph load||disk||net||network||cpu||mem||memory
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph rpm||errors\n
 #{robot.name} #{keyword1}|#{keyword2} users\n
 #{robot.name} #{keyword1}|#{keyword2} user email <filter_string>"
 
@@ -314,6 +347,34 @@ plugin = (robot) ->
           msg.send "Failed: #{err.message}"
         else
           graph_data = plugin.graph json.metric_data, metric_map[graph_type], value_type, config
+          plugin.uploadChart msg, plugin.buildChart graph_data
+
+  # 'Shortcut' app graph function
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+([0-9]+)\s+graph\s+(rpm|errors)\s*$///i, (msg) ->
+    getApps msg.match[2], (status, details) ->
+      # Perform some basic checks
+      if ! getAppsVerify status, details, msg
+        return
+
+      app_id = details.applications[0].id
+      metric_map = {'errors' : {'name'  : ['Errors/all'],\
+                                'value' : 'errors_per_minute'},\
+                    'rpm'    : {'name'  : ['OtherTransaction/all'],\
+                                'value' : 'requests_per_minute'}}
+
+      graph_type = msg.match[3]
+      data = ''
+
+      for value in metric_map[graph_type]['name']
+        data = data + encodeURIComponent('names[]') + '=' + encodeURIComponent(value) + '&'
+
+      data = data + encodeURIComponent('values[]') + '=' + metric_map[graph_type]['value'] + '&summarize=false&raw=true'
+
+      request "applications/#{app_id}/metrics/data.json", data, (err, json) ->
+        if err
+          msg.send "Failed: #{err.message}"
+        else
+          graph_data = plugin.graph json.metric_data, metric_map[graph_type]['name'], metric_map[graph_type]['value'], config
           plugin.uploadChart msg, plugin.buildChart graph_data
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+users\s+email\s+([a-zA-Z0-9.@]+)\s*$///i, (msg) ->
@@ -507,7 +568,6 @@ plugin.buildChart = (graph_data) ->
   steps = 10
 
   nchart(ctx).Line jsonData,
-    scaleOverlay: not true
     scaleOverride: true
     scaleSteps: steps
     scaleStartValue: 0
