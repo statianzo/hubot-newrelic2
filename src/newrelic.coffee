@@ -133,8 +133,6 @@ plugin = (robot) ->
   getApps = (app, cb) ->
     filter = 'filter[name]'
 
-    console.log(app)
-
     if app.match(/^\d+$/g)
       filter = 'filter[ids]'
 
@@ -179,7 +177,7 @@ plugin = (robot) ->
 #{robot.name} #{keyword1}|#{keyword2} servers name <filter_string>\n
 #{robot.name} #{keyword1}|#{keyword2} servers metrics <server_id>\n
 #{robot.name} #{keyword1}|#{keyword2} servers metrics <app_id||filter_string> graph <metric_name> <metric_type>\n
-#{robot.name} #{keyword1}|#{keyword2} servers <app_id||filter_string> graph load||disk||net||network||cpu||mem||memory
+#{robot.name} #{keyword1}|#{keyword2} servers <app_id||filter_string> graph load||disk||net||network||cpu||mem||memory\n
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id|\"filter string\"> graph rpm||errors\n
