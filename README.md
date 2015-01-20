@@ -99,7 +99,14 @@ hubot newrelic apps metrics <app_id> name <filter_string>
 
 * Returns a chart for the metric/type based on the last 30 minutes of data
 ```
-hubot newrelic apps metrics <app_id> chart <metric_name> <metric_type>
+hubot newrelic apps metrics <app_id> graph <metric_name> <metric_type>
+```
+
+* 'Shorthand' app graph functionality 
+```
+hubot newrelic apps <app_id||"filter string"> graph rpm
+hubot newrelic apps <app_id||"filter string"> graph errors
+# Both '/nr apps 12345 graph rpm' and '/nr apps "Some App" graph rpm' are valid
 ```
 
 #### Key Transaction Related Commands
