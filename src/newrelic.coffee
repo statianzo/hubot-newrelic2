@@ -133,6 +133,8 @@ plugin = (robot) ->
   getApps = (app, cb) ->
     filter = 'filter[name]'
 
+    console.log(app)
+
     if app.match(/^\d+$/g)
       filter = 'filter[ids]'
 
@@ -155,7 +157,7 @@ plugin = (robot) ->
 
     if details.applications.length > 1
       msg.send "Result set contains #{details.applications.length} servers; please clarify:"
-      apps = details.applications.map (app) -> app.name
+      apps = details.applications.map (app) -> app.name + " (#{app.id})"
       msg.send apps.join(', ')
       return false
 
@@ -180,7 +182,7 @@ plugin = (robot) ->
 #{robot.name} #{keyword1}|#{keyword2} servers <app_id||filter_string> graph load||disk||net||network||cpu||mem||memory
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
 #{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph rpm||errors\n
+#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id|\"filter string\"> graph rpm||errors\n
 #{robot.name} #{keyword1}|#{keyword2} users\n
 #{robot.name} #{keyword1}|#{keyword2} user email <filter_string>"
 
@@ -350,8 +352,11 @@ plugin = (robot) ->
           plugin.uploadChart msg, plugin.buildChart graph_data
 
   # 'Shortcut' app graph function
-  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+([0-9]+)\s+graph\s+(rpm|errors)\s*$///i, (msg) ->
-    getApps msg.match[2], (status, details) ->
+  ## Allows for '/nr apps 1234 graph rpm' OR '/nr apps "Some App" graph rpm'
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+([0-9]+|"[a-zA-Z0-9_\-\.\s\(\)]+")\s+graph\s+(rpm|errors)\s*$///i, (msg) ->
+    app_id = msg.match[2].replace(/"/g, "")
+
+    getApps app_id, (status, details) ->
       # Perform some basic checks
       if ! getAppsVerify status, details, msg
         return
