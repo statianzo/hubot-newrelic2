@@ -1,7 +1,7 @@
 {
   "name": "hubot-newrelic2",
   "description": "NewRelic plugin for hubot",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": "Jason Staten <jstaten07@gmail.com>",
   "contributors": [
     {
