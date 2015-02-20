@@ -10,6 +10,7 @@
 # Commands:
 #   hubot newrelic help - Returns a list of commands for this plugin
 #   hubot newrelic apps - Returns statistics for all applications from New Relic
+#   hubot newrelic apps errors - Returns statistics for applications with errors from New Relic
 #   hubot newrelic apps name <filter_string> - Returns a filtered list of applications
 #   hubot newrelic apps instances <app_id> - Returns a list of one application's instances
 #   hubot newrelic apps hosts <app_id> - Returns a list of one application's hosts
@@ -57,6 +58,7 @@ plugin = (robot) ->
 Note: In these commands you can shorten newrelic to nr.\n
 #{robot.name} newrelic help\n
 #{robot.name} newrelic apps\n
+#{robot.name} newrelic apps errors\n
 #{robot.name} newrelic apps name <filter_string>\n
 #{robot.name} newrelic apps instances <app_id>\n
 #{robot.name} newrelic apps hosts <app_id>\n
@@ -73,6 +75,17 @@ Note: In these commands you can shorten newrelic to nr.\n
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.apps json.applications, config
+
+  robot.respond /(newrelic|nr) apps errors$/i, (msg) ->
+    request 'applications.json', '', (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        result = (item for item in json.applications when item.error_rate > 0)
+        if result.length > 0
+          msg.send plugin.apps result, config
+        else
+          msg.send "No applications with errors."
 
   robot.respond /(newrelic|nr) ktrans$/i, (msg) ->
     request 'key_transactions.json', '', (err, json) ->
