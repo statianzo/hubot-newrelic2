@@ -190,10 +190,10 @@ plugin = (robot) ->
     request 'applications.json', '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
-      else
+      else 
         msg.send plugin.apps json.applications, config
 
-  robot.respond /(newrelic|nr) apps errors$/i, (msg) ->
+  robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+errors$///i, (msg) ->
     request 'applications.json', '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
