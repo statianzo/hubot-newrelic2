@@ -30,7 +30,7 @@
 
 plugin = (robot) ->
   apiKey = process.env.HUBOT_NEWRELIC_API_KEY
-  apiHost = process.env.HUBOT_NEWRELIC_API_HOST
+  apiHost = process.env.HUBOT_NEWRELIC_API_HOST or 'api.newrelic.com'
   apiBaseUrl = "https://#{apiHost}/v2/"
   config = {}
 
