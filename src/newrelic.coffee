@@ -60,6 +60,11 @@ plugin = (robot) ->
     when "hipchat"
       config.up = '(continue)'
       config.down = '(failed)'
+      FORMAT = "/code"
+    when "slack"
+      config.up = ':green_circle:'
+      config.down = ':red_circle:'
+      FORMAT = "```"
 
   request = (path, data, cb) ->
     robot.http(apiBaseUrl + path)
@@ -163,34 +168,34 @@ plugin = (robot) ->
     return true
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
-    msg.send "
-#{robot.name} #{keyword1}|#{keyword2} help\n
-#{robot.name} #{keyword1}|#{keyword2} apps\n
-#{robot.name} #{keyword1}|#{keyword2} apps errors\n
-#{robot.name} #{keyword1}|#{keyword2} apps name <filter_string>\n
-#{robot.name} #{keyword1}|#{keyword2} apps instances <app_id>\n
-#{robot.name} #{keyword1}|#{keyword2} apps hosts <app_id>\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id>\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
-#{robot.name} #{keyword1}|#{keyword2} ktrans\n
-#{robot.name} #{keyword1}|#{keyword2} ktrans id <ktrans_id>\n
-#{robot.name} #{keyword1}|#{keyword2} servers\n
-#{robot.name} #{keyword1}|#{keyword2} servers name <filter_string>\n
-#{robot.name} #{keyword1}|#{keyword2} servers metrics <server_id>\n
-#{robot.name} #{keyword1}|#{keyword2} servers metrics <app_id||filter_string> graph <metric_name> <metric_type>\n
-#{robot.name} #{keyword1}|#{keyword2} servers <app_id||filter_string> graph load||disk||net||network||cpu||mem||memory\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> name <filter_string>\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
-#{robot.name} #{keyword1}|#{keyword2} apps metrics <app_id|\"filter string\"> graph rpm||errors\n
-#{robot.name} #{keyword1}|#{keyword2} users\n
-#{robot.name} #{keyword1}|#{keyword2} user email <filter_string>"
+    msg.send "#{FORMAT}Commands:
+    #{robot.name} #{keyword1} | #{keyword2} help\n
+    #{robot.name} #{keyword1} | #{keyword2} apps\n
+    #{robot.name} #{keyword1} | #{keyword2} apps errors\n
+    #{robot.name} #{keyword1} | #{keyword2} apps name <filter_string>\n
+    #{robot.name} #{keyword1} | #{keyword2} apps instances <app_id>\n
+    #{robot.name} #{keyword1} | #{keyword2} apps hosts <app_id>\n
+    #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id>\n
+    #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id> name <filter_string>\n
+    #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
+    #{robot.name} #{keyword1} | #{keyword2} ktrans\n
+    #{robot.name} #{keyword1} | #{keyword2} ktrans id <ktrans_id>\n
+    #{robot.name} #{keyword1} | #{keyword2} servers\n
+    #{robot.name} #{keyword1} | #{keyword2} servers name <filter_string>\n
+    #{robot.name} #{keyword1} | #{keyword2} servers metrics <server_id>\n
+    #{robot.name} #{keyword1} | #{keyword2} servers metrics <app_id||filter_string> graph <metric_name> <metric_type>\n
+    #{robot.name} #{keyword1} | #{keyword2} servers <app_id||filter_string> graph load||disk||net||network||cpu||mem||memory\n
+    #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id> name <filter_string>\n
+    #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
+    #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id|\"filter string\"> graph rpm||errors\n
+    #{robot.name} #{keyword1} | #{keyword2} users\n
+    #{robot.name} #{keyword1} | #{keyword2} user email <filter_string>#{FORMAT}"
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s*$///i, (msg) ->
     request 'applications.json', '', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
-      else 
+      else
         msg.send plugin.apps json.applications, config
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s+errors$///i, (msg) ->
@@ -410,7 +415,7 @@ plugin.apps = (apps, opts = {}) ->
     summary = a.application_summary || {}
 
     if a.reporting
-      line.push up
+      line.push "#{FORMAT}" + up
     else
       line.push down
 
@@ -423,7 +428,7 @@ plugin.apps = (apps, opts = {}) ->
       line.push "RPM:#{summary.throughput}"
 
     if isFinite(summary.error_rate)
-      line.push "Err:#{summary.error_rate}%"
+      line.push "Err:#{summary.error_rate}% #{FORMAT}"
 
     line.join "  "
 
