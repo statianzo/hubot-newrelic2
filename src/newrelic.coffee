@@ -502,8 +502,6 @@ plugin.ktrans = (ktrans, opts = {}) ->
 
     line.join "  "
 
-  lines.unshift("```")
-  lines.push("```")
   lines.join("\n")
 
 plugin.ktran = (ktran, opts = {}) ->
@@ -527,8 +525,6 @@ plugin.ktran = (ktran, opts = {}) ->
 
     line.join "  "
 
-  lines.unshift("```")
-  lines.push("```")
   lines.join("\n")
 
 plugin.values = (values, opts = {}) ->
@@ -552,8 +548,6 @@ plugin.metrics = (metrics, opts = {}) ->
 
     line.join "  "
 
-  lines.unshift("#{format}")
-  lines.push("#{format}")
   lines.join("\n")
 
 # Build a multi-plot chart (limitation: max 5 separate data plots)
