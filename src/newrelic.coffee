@@ -63,6 +63,7 @@ plugin = (robot) ->
     when "slack"
       config.up = ':green_circle:'
       config.down = ':red_circle:'
+      format = "```"
 
   request = (path, data, cb) ->
     robot.http(apiBaseUrl + path)
@@ -83,10 +84,10 @@ plugin = (robot) ->
     base_url = process.env.HUBOT_NEWRELIC_URL
 
     if (! base_url?)
-      return "HUBOT_NEWRELIC_URL environment variable not defined"
+      return "HUBOT_NEWRELIC_URL environment variable not defined."
 
     if (! server.account_id?)
-      return "Unable to find account id in server object"
+      return "Unable to find account ID in server object."
 
     built_url = base_url + "/accounts/" + server.account_id + "/servers/" + server.id
 
@@ -122,7 +123,7 @@ plugin = (robot) ->
       return false
 
     if details.servers.length == 0
-      msg.send "No servers found by that name/id"
+      msg.send "No servers found by that name/id."
       return false
 
     if details.servers.length > 1
@@ -154,7 +155,7 @@ plugin = (robot) ->
       return false
 
     if details.applications.length == 0
-      msg.send "No apps found by that name/id"
+      msg.send "No apps found by that name/ID."
       return false
 
     if details.applications.length > 1
@@ -166,7 +167,7 @@ plugin = (robot) ->
     return true
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
-    msg.send "```Commands:\n
+    msg.send "#{format} Commands:\n
     #{robot.name} #{keyword1} | #{keyword2} help\n
     #{robot.name} #{keyword1} | #{keyword2} apps\n
     #{robot.name} #{keyword1} | #{keyword2} apps errors\n
@@ -187,7 +188,7 @@ plugin = (robot) ->
     #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
     #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id|\"filter string\"> graph rpm||errors\n
     #{robot.name} #{keyword1} | #{keyword2} users\n
-    #{robot.name} #{keyword1} | #{keyword2} user email <filter_string>```"
+    #{robot.name} #{keyword1} | #{keyword2} user email <filter_string> #{format}"
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s*$///i, (msg) ->
     request 'applications.json', '', (err, json) ->
@@ -502,6 +503,8 @@ plugin.ktrans = (ktrans, opts = {}) ->
 
     line.join "  "
 
+  lines.unshift("#{format}")
+  lines.push("#{format}")
   lines.join("\n")
 
 plugin.ktran = (ktran, opts = {}) ->
@@ -525,6 +528,8 @@ plugin.ktran = (ktran, opts = {}) ->
 
     line.join "  "
 
+  lines.unshift("#{format}")
+  lines.push("#{format}")
   lines.join("\n")
 
 plugin.values = (values, opts = {}) ->
@@ -547,6 +552,9 @@ plugin.metrics = (metrics, opts = {}) ->
     line.push m.name
 
     line.join "  "
+
+  lines.unshift("#{format}")
+  lines.push("#{format}")
   lines.join("\n")
 
 # Build a multi-plot chart (limitation: max 5 separate data plots)
