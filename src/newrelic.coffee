@@ -56,17 +56,13 @@ plugin = (robot) ->
   keyword1 = 'nr'
   keyword2 = 'newrelic'
 
-  ADAPTER = "slack"
-
-  switch ADAPTER
+  switch robot.adapterName
     when "hipchat"
       config.up = '(continue)'
       config.down = '(failed)'
-      FORMAT = "/code"
     when "slack"
       config.up = ':green_circle:'
       config.down = ':red_circle:'
-      FORMAT = "```"
 
   request = (path, data, cb) ->
     robot.http(apiBaseUrl + path)
@@ -170,7 +166,7 @@ plugin = (robot) ->
     return true
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
-    msg.send "#{FORMAT}Commands:
+    msg.send "```Commands:\n
     #{robot.name} #{keyword1} | #{keyword2} help\n
     #{robot.name} #{keyword1} | #{keyword2} apps\n
     #{robot.name} #{keyword1} | #{keyword2} apps errors\n
@@ -191,7 +187,7 @@ plugin = (robot) ->
     #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
     #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id|\"filter string\"> graph rpm||errors\n
     #{robot.name} #{keyword1} | #{keyword2} users\n
-    #{robot.name} #{keyword1} | #{keyword2} user email <filter_string>#{FORMAT}"
+    #{robot.name} #{keyword1} | #{keyword2} user email <filter_string>```"
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s*$///i, (msg) ->
     request 'applications.json', '', (err, json) ->
@@ -417,7 +413,7 @@ plugin.apps = (apps, opts = {}) ->
     summary = a.application_summary || {}
 
     if a.reporting
-      line.push "#{FORMAT}" + up
+      line.push "```" + up
     else
       line.push down
 
@@ -430,7 +426,7 @@ plugin.apps = (apps, opts = {}) ->
       line.push "RPM:#{summary.throughput}"
 
     if isFinite(summary.error_rate)
-      line.push "Err:#{summary.error_rate}% #{FORMAT}"
+      line.push "Err:#{summary.error_rate}% ```"
 
     line.join "  "
 
