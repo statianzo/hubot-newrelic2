@@ -56,7 +56,9 @@ plugin = (robot) ->
   keyword1 = 'nr'
   keyword2 = 'newrelic'
 
-  switch robot.adapterName
+  ADAPTER = "slack"
+
+  switch ADAPTER
     when "hipchat"
       config.up = '(continue)'
       config.down = '(failed)'
