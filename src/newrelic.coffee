@@ -413,7 +413,7 @@ plugin.apps = (apps, opts = {}) ->
     summary = a.application_summary || {}
 
     if a.reporting
-      line.push "```" + up
+      line.push "" + up
     else
       line.push down
 
@@ -426,7 +426,7 @@ plugin.apps = (apps, opts = {}) ->
       line.push "RPM:#{summary.throughput}"
 
     if isFinite(summary.error_rate)
-      line.push "Err:#{summary.error_rate}% ```"
+      line.push "Err:#{summary.error_rate}% "
 
     line.join "  "
 
