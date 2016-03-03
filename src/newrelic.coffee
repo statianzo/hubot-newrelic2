@@ -63,7 +63,6 @@ plugin = (robot) ->
     when "slack"
       config.up = ':green_circle:'
       config.down = ':red_circle:'
-      format = "```"
 
   request = (path, data, cb) ->
     robot.http(apiBaseUrl + path)
@@ -167,7 +166,7 @@ plugin = (robot) ->
     return true
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+help\s*$///i, (msg) ->
-    msg.send "#{format} Commands:\n
+    msg.send "```Commands:\n
     #{robot.name} #{keyword1} | #{keyword2} help\n
     #{robot.name} #{keyword1} | #{keyword2} apps\n
     #{robot.name} #{keyword1} | #{keyword2} apps errors\n
@@ -188,7 +187,7 @@ plugin = (robot) ->
     #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id> graph <metric_name> <metric_type>\n
     #{robot.name} #{keyword1} | #{keyword2} apps metrics <app_id|\"filter string\"> graph rpm||errors\n
     #{robot.name} #{keyword1} | #{keyword2} users\n
-    #{robot.name} #{keyword1} | #{keyword2} user email <filter_string> #{format}"
+    #{robot.name} #{keyword1} | #{keyword2} user email <filter_string> ```"
 
   robot.respond ///(#{keyword1}|#{keyword2})\s+apps\s*$///i, (msg) ->
     request 'applications.json', '', (err, json) ->
@@ -503,8 +502,8 @@ plugin.ktrans = (ktrans, opts = {}) ->
 
     line.join "  "
 
-  lines.unshift("#{format}")
-  lines.push("#{format}")
+  lines.unshift("```")
+  lines.push("```")
   lines.join("\n")
 
 plugin.ktran = (ktran, opts = {}) ->
@@ -528,8 +527,8 @@ plugin.ktran = (ktran, opts = {}) ->
 
     line.join "  "
 
-  lines.unshift("#{format}")
-  lines.push("#{format}")
+  lines.unshift("```")
+  lines.push("```")
   lines.join("\n")
 
 plugin.values = (values, opts = {}) ->
