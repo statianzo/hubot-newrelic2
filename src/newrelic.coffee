@@ -40,7 +40,7 @@ plugin = (robot) ->
       config.down = '(failed)'
     when "slack"
       config.up = ':white_check_mark:'
-      config.up = ':no_entry_sign:'
+      config.down = ':no_entry_sign:'
 
   request = (path, data, cb) ->
     robot.http(apiBaseUrl + path)
