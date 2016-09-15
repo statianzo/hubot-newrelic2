@@ -38,6 +38,9 @@ plugin = (robot) ->
     when "hipchat"
       config.up = '(continue)'
       config.down = '(failed)'
+    when "slack"
+      config.up = ':white_check_mark:'
+      config.up = ':no_entry_sign:'
 
   request = (path, data, cb) ->
     robot.http(apiBaseUrl + path)
