@@ -67,7 +67,7 @@ hubot newrelic servers
 
 * Filtered list of servers
 ```
-hubot newrelic server name <filter_string>
+hubot newrelic servers name <filter_string>
 ```
 
 #### User Related Commands
