@@ -17,7 +17,7 @@
 #   hubot newrelic ktrans - Lists stats for all key transactions from New Relic
 #   hubot newrelic ktrans id <ktrans_id> - Returns a single key transaction
 #   hubot newrelic servers - Returns statistics for all servers from New Relic
-#   hubot newrelic server name <filter_string> - Returns a filtered list of servers
+#   hubot newrelic servers name <filter_string> - Returns a filtered list of servers
 #   hubot newrelic users - Returns a list of all account users from New Relic
 #   hubot newrelic user email <filter_string> - Returns a filtered list of account users
 #
@@ -68,7 +68,7 @@ Note: In these commands you can shorten newrelic to nr.\n
 #{robot.name} newrelic ktrans\n
 #{robot.name} newrelic ktrans id <ktrans_id>\n
 #{robot.name} newrelic servers\n
-#{robot.name} newrelic server name <filter_string>\n
+#{robot.name} newrelic servers name <filter_string>\n
 #{robot.name} newrelic users\n
 #{robot.name} newrelic user email <filter_string>"
 
