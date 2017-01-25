@@ -9,11 +9,14 @@
 #
 # Commands:
 #   hubot newrelic help - Returns a list of commands for this plugin
+#   hubot newrelic set date format <date_format>
+#                  see https://github.com/pillarsjs/date.format for date formats
 #   hubot newrelic apps - Returns statistics for all applications from New Relic
 #   hubot newrelic apps errors - Returns statistics for applications with errors from New Relic
 #   hubot newrelic apps name <filter_string> - Returns a filtered list of applications
 #   hubot newrelic apps instances <app_id> - Returns a list of one application's instances
 #   hubot newrelic apps hosts <app_id> - Returns a list of one application's hosts
+#   hubot newrelic deployments <app_id> - Returns a filtered list of application deployment events
 #   hubot newrelic ktrans - Lists stats for all key transactions from New Relic
 #   hubot newrelic ktrans id <ktrans_id> - Returns a single key transaction
 #   hubot newrelic servers - Returns statistics for all servers from New Relic
@@ -26,7 +29,13 @@
 #
 # Contributors:
 #   spkane
+#   cmckni3
 #
+
+require('date.format')
+
+DATE_FORMAT_KEY     = 'newrelic_date_format'
+DEFAULT_DATE_FORMAT = '{Y}-{M}-{D} at {h}:{m}:{s}'
 
 plugin = (robot) ->
   apiKey = process.env.HUBOT_NEWRELIC_API_KEY
@@ -34,37 +43,52 @@ plugin = (robot) ->
   apiBaseUrl = "https://#{apiHost}/v2/"
   config = {}
 
+  date_format = robot.brain.get(DATE_FORMAT_KEY)
+
+  if !date_format? or date_format is ''
+    robot.brain.set DATE_FORMAT_KEY, DEFAULT_DATE_FORMAT
+
   switch robot.adapterName
     when "hipchat"
       config.up = '(continue)'
       config.down = '(failed)'
+      config.blockquote = '/code '
     when "slack"
       config.up = ':white_check_mark:'
       config.down = ':no_entry_sign:'
+      config.blockquote = '>>> '
 
-  request = (path, data, cb) ->
+  _parse_response = (cb) ->
+    (err, res, body) ->
+      if err
+        cb(err)
+      else
+        json = JSON.parse(body)
+        if json.error
+          cb(new Error(body))
+        else
+          cb(null, json)
+
+  _request = (path, cb) ->
     robot.http(apiBaseUrl + path)
       .header('X-Api-Key', apiKey)
       .header("Content-Type","application/x-www-form-urlencoded")
-      .post(data) (err, res, body) ->
-        if err
-          cb(err)
-        else
-          json = JSON.parse(body)
-          if json.error
-            cb(new Error(body))
-          else
-            cb(null, json)
+
+  get = (path, cb) -> _request(path).get() _parse_response(cb)
+  post = (path, data, cb) -> _request(path).post(data) _parse_response(cb)
 
   robot.respond /(newrelic|nr) help$/i, (msg) ->
     msg.send "
 Note: In these commands you can shorten newrelic to nr.\n
 #{robot.name} newrelic help\n
+#{robot.name} newrelic set date format <date_format>\n
+              see https://github.com/pillarsjs/date.format for date formats\n
 #{robot.name} newrelic apps\n
 #{robot.name} newrelic apps errors\n
 #{robot.name} newrelic apps name <filter_string>\n
 #{robot.name} newrelic apps instances <app_id>\n
 #{robot.name} newrelic apps hosts <app_id>\n
+#{robot.name} newrelic deployments <app_id>\n
 #{robot.name} newrelic ktrans\n
 #{robot.name} newrelic ktrans id <ktrans_id>\n
 #{robot.name} newrelic servers\n
@@ -72,15 +96,20 @@ Note: In these commands you can shorten newrelic to nr.\n
 #{robot.name} newrelic users\n
 #{robot.name} newrelic user email <filter_string>"
 
+  robot.respond /(newrelic|nr) set date format (.+)$/i, (msg) ->
+    new_date_format = msg.match[2]
+    robot.brain.set DATE_FORMAT_KEY, new_date_format
+    msg.send "Date format set to #{new_date_format}"
+
   robot.respond /(newrelic|nr) apps$/i, (msg) ->
-    request 'applications.json', '', (err, json) ->
+    get 'applications.json', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.apps json.applications, config
 
   robot.respond /(newrelic|nr) apps errors$/i, (msg) ->
-    request 'applications.json', '', (err, json) ->
+    get 'applications.json', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
@@ -91,21 +120,21 @@ Note: In these commands you can shorten newrelic to nr.\n
           msg.send "No applications with errors."
 
   robot.respond /(newrelic|nr) ktrans$/i, (msg) ->
-    request 'key_transactions.json', '', (err, json) ->
+    get 'key_transactions.json', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.ktrans json.key_transactions, config
 
   robot.respond /(newrelic|nr) servers$/i, (msg) ->
-    request 'servers.json', '', (err, json) ->
+    get 'servers.json', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.servers json.servers, config
 
   robot.respond /(newrelic|nr) users$/i, (msg) ->
-    request 'users.json', '', (err, json) ->
+    get 'users.json', (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
@@ -113,28 +142,28 @@ Note: In these commands you can shorten newrelic to nr.\n
 
   robot.respond /(newrelic|nr) apps name ([\s\S]+)$/i, (msg) ->
     data = encodeURIComponent('filter[name]') + '=' +  encodeURIComponent(msg.match[2])
-    request 'applications.json', data, (err, json) ->
+    post 'applications.json', data, (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.apps json.applications, config
 
   robot.respond /(newrelic|nr) apps hosts ([0-9]+)$/i, (msg) ->
-    request "applications/#{msg.match[2]}/hosts.json", '', (err, json) ->
+    get "applications/#{msg.match[2]}/hosts.json", (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.hosts json.application_hosts, config
 
   robot.respond /(newrelic|nr) apps instances ([0-9]+)$/i, (msg) ->
-    request "applications/#{msg.match[2]}/instances.json", '', (err, json) ->
+    get "applications/#{msg.match[2]}/instances.json", (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.instances json.application_instances, config
 
   robot.respond /(newrelic|nr) ktrans id ([0-9]+)$/i, (msg) ->
-    request "key_transactions/#{msg.match[2]}.json", '', (err, json) ->
+    get "key_transactions/#{msg.match[2]}.json", (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
@@ -142,7 +171,7 @@ Note: In these commands you can shorten newrelic to nr.\n
 
   robot.respond /(newrelic|nr) servers name ([a-zA-Z0-9\-.]+)$/i, (msg) ->
     data = encodeURIComponent('filter[name]') + '=' +  encodeURIComponent(msg.match[2])
-    request 'servers.json', data, (err, json) ->
+    post 'servers.json', data, (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
@@ -150,11 +179,18 @@ Note: In these commands you can shorten newrelic to nr.\n
 
   robot.respond /(newrelic|nr) users email ([a-zA-Z0-9.@]+)$/i, (msg) ->
     data = encodeURIComponent('filter[email]') + '=' +  encodeURIComponent(msg.match[2])
-    request 'users.json', data, (err, json) ->
+    post 'users.json', data, (err, json) ->
       if err
         msg.send "Failed: #{err.message}"
       else
         msg.send plugin.users json.users, config
+
+  robot.respond /(newrelic|nr) deployments ([0-9]+)$/i, (msg) ->
+    get "applications/#{msg.match[2]}/deployments.json", (err, json) ->
+      if err
+        msg.send "Failed: #{err.message}"
+      else
+        msg.send plugin.deployments json.deployments, Object.assign(config, {date_format: robot.brain.get(DATE_FORMAT_KEY)})
 
 plugin.apps = (apps, opts = {}) ->
   up = opts.up || "UP"
@@ -319,5 +355,24 @@ plugin.users = (users, opts = {}) ->
     line.join "  "
 
   lines.join("\n")
+
+plugin.deployments = (deployments, opts = {}) ->
+
+  lines = deployments.map (d) ->
+    line = []
+
+    line.push d.user
+    line.push 'deployed'
+    line.push d.revision
+    line.push 'on'
+    line.push(new Date(d.timestamp).format(opts.date_format))
+    line.push "\n\n"
+    line.push d.description
+    line.push "\n\nCHANGELOG\n"
+    line.push d.changelog
+
+    line.join " "
+
+  "#{opts.blockquote}#{lines.join("\n")}"
 
 module.exports = plugin

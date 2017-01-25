@@ -46,6 +46,11 @@ hubot newrelic apps instances <app_id>
 hubot newrelic apps hosts <app_id>
 ```
 
+* List all deployments for an application
+```
+hubot newrelic deployments <app_id>
+```
+
 #### Key Transaction Related Commands
 
 * List of all key transactions
