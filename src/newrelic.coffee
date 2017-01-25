@@ -190,7 +190,12 @@ Note: In these commands you can shorten newrelic to nr.\n
       if err
         msg.send "Failed: #{err.message}"
       else
-        msg.send plugin.deployments json.deployments, Object.assign(config, {date_format: robot.brain.get(DATE_FORMAT_KEY)})
+        opts = Object.assign(
+          {},
+          config,
+          {date_format: robot.brain.get(DATE_FORMAT_KEY)}
+        )
+        msg.send plugin.deployments json.deployments, opts
 
 plugin.apps = (apps, opts = {}) ->
   up = opts.up || "UP"
