@@ -73,10 +73,14 @@ plugin = (robot) ->
   _request = (path, cb) ->
     robot.http(apiBaseUrl + path)
       .header('X-Api-Key', apiKey)
-      .header("Content-Type","application/x-www-form-urlencoded")
+      .header('Content-Type','application/x-www-form-urlencoded')
 
-  get = (path, cb) -> _request(path).get() _parse_response(cb)
-  post = (path, data, cb) -> _request(path).post(data) _parse_response(cb)
+  get = (path, cb) ->
+    return cb({message:'HUBOT_NEWRELIC_API_KEY is not set'}) if !apiKey
+    _request(path).get() _parse_response(cb)
+  post = (path, data, cb) ->
+    return cb({message:'HUBOT_NEWRELIC_API_KEY is not set'}) if !apiKey
+    _request(path).post(data) _parse_response(cb)
 
   robot.respond /(newrelic|nr) help$/i, (msg) ->
     msg.send "
