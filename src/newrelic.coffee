@@ -40,6 +40,7 @@ DEFAULT_DATE_FORMAT = '{Y}-{M}-{D} at {h}:{m}:{s}'
 plugin = (robot) ->
   apiKey = process.env.HUBOT_NEWRELIC_API_KEY
   apiHost = process.env.HUBOT_NEWRELIC_API_HOST or 'api.newrelic.com'
+  throw new Error('HUBOT_NEWRELIC_API_KEY is not set') unless apiKey
   apiBaseUrl = "https://#{apiHost}/v2/"
   config = {}
 
